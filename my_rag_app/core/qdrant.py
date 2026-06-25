@@ -16,13 +16,13 @@ from my_rag_app.exception import MyException
 from my_rag_app.entity.models import Chunk, Email, Metadata
 from my_rag_app.entity.reports import QdrantIngestionReport
 from my_rag_app.config.config import get_session
-from my_rag_app.constants import QDRANT_URL, QDRANT_COLLECTION, EMBEDDING_BATCH_SIZE
+from my_rag_app.constants import QDRANT_URL, QDRANT_COLLECTION, EMBEDDING_BATCH_SIZE,DENSE_EMBEDDING_MODEL, SPARSE_EMBEDDING_MODEL, DENSE_DIM
 
 logger = get_logger(__name__)
 
-DENSE_MODEL_NAME  = "BAAI/bge-small-en-v1.5"
-SPARSE_MODEL_NAME = "Qdrant/bm25"
-DENSE_DIM         = 384
+DENSE_MODEL_NAME  = DENSE_EMBEDDING_MODEL
+SPARSE_MODEL_NAME = SPARSE_EMBEDDING_MODEL
+DENSE_DIM         = DENSE_DIM
 
 # Deterministic-ID namespace — fixed, arbitrary UUID so point IDs are stable
 # across runs (same chunk_id always maps to the same Qdrant point id).
