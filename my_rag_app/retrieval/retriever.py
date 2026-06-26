@@ -1,17 +1,16 @@
 from pathlib import Path
-from my_rag_app.logger import logger
+from my_rag_app.logger import get_logger
 from qdrant_client import QdrantClient, models
 from fastembed import TextEmbedding, SparseTextEmbedding
 from my_rag_app.exception import MyException
 from my_rag_app.constants import DENSE_EMBEDDING_MODEL, SPARSE_EMBEDDING_MODEL,DEFAULT_TOP_K_RETRIEVE
 
-# ---------------------------------------------------------------------------
 # Config
-# ---------------------------------------------------------------------------
-
 DENSE_MODEL_NAME  = DENSE_EMBEDDING_MODEL
 SPARSE_MODEL_NAME = SPARSE_EMBEDDING_MODEL
 DEFAULT_TOP_K     = DEFAULT_TOP_K_RETRIEVE
+
+logger = get_logger(__name__)
 
 
 # HybridRetriever
@@ -33,10 +32,7 @@ class HybridRetriever:
         self.dense_model  = None
         self.sparse_model = None
 
-    # ------------------------------------------------------------------
-    # Setup (lazy — only loads what's actually needed)
-    # ------------------------------------------------------------------
-
+    # Setup (lazy — only loads what's actually needed-
     def _connect(self) -> None:
         if self.client is not None:
             return

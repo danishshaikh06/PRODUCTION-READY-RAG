@@ -1,19 +1,19 @@
 import time
 from dataclasses import dataclass
-from pathlib import Path
+from my_rag_app.constants import LLM_MODEL, LLM_BASE_URL, TOKENIZER_ENCODING, LLM_REQUEST_TIMEOUT_SECONDS
 
 import requests
 import tiktoken
-from my_rag_app.logger import logger
+from my_rag_app.logger import get_logger
 from my_rag_app.exception import MyException
-# ---------------------------------------------------------------------------
-# Config
-# ---------------------------------------------------------------------------
 
-DEFAULT_MODEL    = "qwen3.5:2b"
-DEFAULT_BASE_URL = "http://localhost:11434"
-TOKENIZER_ENCODING = "cl100k_base"  # approximation — Ollama has no native token-count endpoint
-REQUEST_TIMEOUT_SECONDS = 120
+# Config
+DEFAULT_MODEL    = LLM_MODEL
+DEFAULT_BASE_URL = LLM_BASE_URL
+TOKENIZER_ENCODER =  TOKENIZER_ENCODING # approximation — Ollama has no native token-count endpoint
+REQUEST_TIMEOUT_SECONDS = LLM_REQUEST_TIMEOUT_SECONDS 
+
+logger = get_logger(__name__)
 
 
 @dataclass
@@ -24,11 +24,7 @@ class LLMResponse:
     output_tokens: int
     latency_ms: float
 
-
-# ---------------------------------------------------------------------------
 # LLMClient — talks to a local Ollama server via its native /api/chat endpoint
-# ---------------------------------------------------------------------------
-
 class LLMClient:
 
     def __init__(self, model_name: str = DEFAULT_MODEL, base_url: str = DEFAULT_BASE_URL):
@@ -49,19 +45,13 @@ class LLMClient:
             )
             self._encoder = None
 
-    # ------------------------------------------------------------------
     # Token counting (approximation — no real endpoint for this in Ollama)
-    # ------------------------------------------------------------------
-
     def count_tokens(self, text: str) -> int:
         if self._encoder is not None:
             return len(self._encoder.encode(text))
         return len(text) // 4
 
-    # ------------------------------------------------------------------
     # Generation
-    # ------------------------------------------------------------------
-
     def generate(
         self,
         messages: list[dict],
@@ -74,8 +64,7 @@ class LLMClient:
 
         payload = {
             "model": self.model_name,
-            "messages": messages,
-            "think": False,  # top-level param — must disable here, not inside "options"
+            "messages": messages, 
             "options": {
                 "temperature": temperature,
                 "num_predict": max_tokens,

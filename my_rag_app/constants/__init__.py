@@ -21,18 +21,15 @@ Centralized constants for the RAG pipeline.
 Single flat module — import everything from `my_rag_app.constants`.
 """
 from pathlib import Path
-# ---------------------------------------------------------------------------
-# Database table names
-# ---------------------------------------------------------------------------
 
+
+# Database table names
 EMAILS_TABLE   = "emails"
 METADATA_TABLE = "metadata"
 CHUNKS_TABLE   = "chunks"
 
-# ---------------------------------------------------------------------------
-# Qdrant configuration
-# ---------------------------------------------------------------------------
 
+# Qdrant configuration
 QDRANT_URL        = "http://localhost:6333"
 QDRANT_COLLECTION = "email_knowledge_v1"
 DENSE_VECTOR_NAME  = "dense"
@@ -41,39 +38,32 @@ VECTOR_SIZE        = 384          # BAAI/bge-small-en-v1.5 dimension
 DISTANCE_METRIC    = "cosine"
 
 
-# ---------------------------------------------------------------------------
-# Chunking strategy
-# ---------------------------------------------------------------------------
 
+# Chunking strategy
 # 1 email = 1 chunk. No size/overlap settings — splitting would break the
 # semantic unit of an email (approvals, conditions, decisions live in the
 # whole message, not an arbitrary window of it).
 CHUNKING_STRATEGY = "email_chunk"
 
 
-# ---------------------------------------------------------------------------
 # Model names
-# ---------------------------------------------------------------------------
-
 DENSE_EMBEDDING_MODEL  = "BAAI/bge-small-en-v1.5"
 SPARSE_EMBEDDING_MODEL = "Qdrant/bm25"
 DENSE_DIM              = 384
 RERANKER_MODEL         = "cross-encoder/ms-marco-MiniLM-L-6-v2"
-LLM_MODEL              = "qwen3.5:2b"
+LLM_MODEL              = "qwen2.5:1.5b"
 LLM_BASE_URL           = "http://localhost:11434"
+TOKENIZER_ENCODING     = "cl100k_base"
 
 
-# ---------------------------------------------------------------------------
-# Pipeline configs
-# ---------------------------------------------------------------------------
-
+# Pipeline configs-
 MAX_RETRIES            = 3
 RETRY_DELAY_SECONDS    = 5
 EMBEDDING_BATCH_SIZE   = 64
 LLM_REQUEST_TIMEOUT_SECONDS = 120
 
 DEFAULT_TOP_K_RETRIEVE = 10
-DEFAULT_TOP_K_RERANK   = 5
+DEFAULT_TOP_K_RERANK   = 3
 CONTEXT_MAX_TOKENS     = 5000
 
 

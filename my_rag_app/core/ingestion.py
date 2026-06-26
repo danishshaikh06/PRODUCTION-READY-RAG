@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from email import message_from_bytes
 from email.header import decode_header
 from email.utils import parsedate_to_datetime, getaddresses
-from dataclasses import asdict
+
 import imaplib
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
@@ -21,16 +21,17 @@ from dotenv import load_dotenv
 from my_rag_app.logger import get_logger
 from my_rag_app.entity.models import Email
 from my_rag_app.config.config import get_session
-from my_rag_app.constants import MAX_RETRIES, RETRY_DELAY_SECONDS, INGESTION_PROGRESS_FILE, INGESTION_REPORT_PATH
-from my_rag_app.entity.reports import IngestionReport
+from my_rag_app.constants import MAX_RETRIES, RETRY_DELAY_SECONDS
 
 logger = get_logger(__name__)
 
-
+# ---------------------------------------------------------------------------
 # Config
+# ---------------------------------------------------------------------------
+
 IMAP_PORT     = 993
-PROGRESS_FILE = INGESTION_PROGRESS_FILE
-REPORT_FILE   = INGESTION_REPORT_PATH 
+PROGRESS_FILE = Path("artifacts/raw/.scrape_progress")
+REPORT_FILE   = Path("artifacts/raw/ingestion_report.json")
 
 REPLY_CHAIN_MARKERS = [
     r"^-{2,}\s*Original Message\s*-{2,}",
@@ -40,7 +41,10 @@ REPLY_CHAIN_MARKERS = [
 SUBJECT_PREFIX_RE = re.compile(r"^\s*(re|fw|fwd)\s*:\s*", re.IGNORECASE)
 
 
+# ---------------------------------------------------------------------------
 # IMAP fetching
+# ---------------------------------------------------------------------------
+
 class ImapFetcher:
     """Handles IMAP connection and raw message retrieval, with retry logic."""
 
@@ -100,8 +104,10 @@ class ImapFetcher:
             pass
 
 
-
+# ---------------------------------------------------------------------------
 # Message parsing
+# ---------------------------------------------------------------------------
+
 class MessageParser:
     """Parses a raw RFC822 message into our intermediate dict format."""
 
@@ -161,12 +167,21 @@ class MessageParser:
         return raw_id.strip() if raw_id else ""
 
     def _extract_name_email_pairs(self, raw_value: str) -> list[tuple[str, str]]:
-        """Returns [(display_name, email), ...]. display_name is '' if absent."""
+        """Returns [(display_name, email), ...]. display_name is '' if absent.
+        getaddresses() splits name/email but does NOT decode MIME encoded-words
+        (e.g. '=?utf-8?Q?...?=') in the name part — that must be done separately,
+        the same way _decode_header_value() already handles the Subject header."""
         if not raw_value:
             return []
         try:
             pairs = getaddresses([raw_value])
-            return [(name.strip(), addr.lower().strip()) for name, addr in pairs if addr]
+            result = []
+            for name, addr in pairs:
+                if not addr:
+                    continue
+                decoded_name = self._decode_header_value(name).strip().strip("'\"")
+                result.append((decoded_name, addr.lower().strip()))
+            return result
         except Exception as e:
             logger.debug("Address parse failed | raw=%r error=%s", raw_value, e)
             return []
@@ -254,8 +269,10 @@ class MessageParser:
         return body.strip()
 
 
-
+# ---------------------------------------------------------------------------
 # Thread resolution (3-tier, second pass over all parsed emails)
+# ---------------------------------------------------------------------------
+
 class ThreadResolver:
     """
     Assigns thread_id and reply_to using a 3-tier strategy:
@@ -350,8 +367,10 @@ class ThreadResolver:
         return keep
 
 
-
+# ---------------------------------------------------------------------------
 # Progress tracking (resumable runs)
+# ---------------------------------------------------------------------------
+
 class ProgressTracker:
     def __init__(self, progress_file: Path):
         self.progress_file = progress_file
@@ -373,7 +392,11 @@ class ProgressTracker:
         except Exception as e:
             logger.warning("Could not update progress file | error=%s", e)
 
+
+# ---------------------------------------------------------------------------
 # Full pipeline
+# ---------------------------------------------------------------------------
+
 class IngestionPipeline:
 
     def __init__(self, mailbox: str = "INBOX"):
@@ -490,11 +513,14 @@ class IngestionPipeline:
             method_counts["references"], method_counts["in_reply_to"],
             method_counts["subject_fallback"], method_counts["original"],
         )
-        
-        data_ingestion_report = IngestionReport(inserted=inserted, skipped_existing= skipped_existing,total_processed=len(emails), thread_match_method_counts=method_counts)
 
-        return asdict(data_ingestion_report)
-    
+        return {
+            "inserted": inserted,
+            "skipped_existing": skipped_existing,
+            "thread_match_method_counts": method_counts,
+            "total_processed": len(emails),
+        }
+
     def _write_report(self, report: dict) -> None:
         REPORT_FILE.parent.mkdir(parents=True, exist_ok=True)
         try:
