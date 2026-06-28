@@ -1,22 +1,12 @@
 from my_rag_app.logger import get_logger
-from pathlib import Path
+from my_rag_app.constants import SYSTEM_PROMPT_V1, PROMPT_VERSION
 
 
 logger = get_logger(__name__)
 
 
-SYSTEM_PROMPT_V1 = """You are an Email Intelligence Assistant for SMB Freight FZE aviation operations. Never show reasoning steps, hidden thoughts, or analysis.
-
-RULES:
-1. Answer ONLY using the provided email context. Do not use outside knowledge.
-2. If the context does not contain enough information, say so explicitly.
-3. Cite the specific email(s) that support your answer using [Email N] format, where N matches the numbering in the context.
-4. For timeline/lifecycle questions, present information chronologically.
-5. Preserve exact operational details (flight numbers, times, conditions, NOTAM references, request IDs).
-6. Do not reveal personal contact information (phone numbers, personal emails) unless specifically asked.
-7. If multiple emails conflict (e.g. a later email revises an earlier decision), prefer the most recent one and note the change."""
-
-PROMPT_VERSION = "v1"
+SYSTEM_PROMPT_V1 = SYSTEM_PROMPT_V1
+PROMPT_VERSION = PROMPT_VERSION
 
 class PromptBuilder:
     """

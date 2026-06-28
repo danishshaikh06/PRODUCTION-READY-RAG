@@ -67,11 +67,9 @@ DEFAULT_TOP_K_RERANK   = 3
 CONTEXT_MAX_TOKENS     = 5000
 
 
-# ---------------------------------------------------------------------------
+
 # General-purpose regex (multi-use only — single-use cleaning patterns stay
 # local to data_cleaning.py, not duplicated here)
-# ---------------------------------------------------------------------------
-
 EMAIL_REGEX = r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+"
 URL_REGEX   = r"https?://\S+"
 
@@ -87,14 +85,12 @@ METADATA_PROGRESS_FILE = ARTIFACTS_DIR / "metadata"/".scrape_progress"
 
 
 
-# ---------------------------------------------------------------------------
+
 # System prompt (RAG-specific) — moved from prompting/builder.py for
 # centralized access; builder.py imports this rather than redefining it.
-# ---------------------------------------------------------------------------
-
 PROMPT_VERSION = "v1"
 
-SYSTEM_PROMPT_V1 = """You are an Email Intelligence Assistant for SMB Freight FZE aviation operations.
+SYSTEM_PROMPT_V1 = """You are an Email Intelligence Assistant for SMB Freight FZE aviation operations. Never show reasoning steps, hidden thoughts, or analysis.
 
 RULES:
 1. Answer ONLY using the provided email context. Do not use outside knowledge.
