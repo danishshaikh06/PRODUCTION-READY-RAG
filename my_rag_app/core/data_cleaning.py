@@ -17,9 +17,6 @@ from my_rag_app.constants import CLEANING_REPORT_PATH
 
 logger = get_logger(__name__)
 
-REPORT_FILE = CLEANING_REPORT_PATH
-
-
 # Patterns
 GREETING_RE = re.compile(r"^Dear\s+.{1,60}?\s*,?\s*$", re.MULTILINE)
 SIGNATURE_ANCHOR_RE = re.compile(
@@ -96,8 +93,8 @@ class CleaningPipeline:
         return "\n".join(cleaned).strip()
 
     def _write_report(self, report: dict) -> None:
-        REPORT_FILE.parent.mkdir(parents=True, exist_ok=True)
-        with open(REPORT_FILE, "w", encoding="utf-8") as f:
+        CLEANING_REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with open(CLEANING_REPORT_PATH, "w", encoding="utf-8") as f:
             json.dump(report, f, indent=2)
 
 

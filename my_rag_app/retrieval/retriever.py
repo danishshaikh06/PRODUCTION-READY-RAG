@@ -5,11 +5,6 @@ from fastembed import TextEmbedding, SparseTextEmbedding
 from my_rag_app.exception import MyException
 from my_rag_app.constants import DENSE_EMBEDDING_MODEL, SPARSE_EMBEDDING_MODEL,DEFAULT_TOP_K_RETRIEVE
 
-# Config
-DENSE_MODEL_NAME  = DENSE_EMBEDDING_MODEL
-SPARSE_MODEL_NAME = SPARSE_EMBEDDING_MODEL
-DEFAULT_TOP_K     = DEFAULT_TOP_K_RETRIEVE
-
 logger = get_logger(__name__)
 
 
@@ -46,14 +41,14 @@ class HybridRetriever:
     def _load_dense_model(self) -> None:
         if self.dense_model is not None:
             return
-        logger.info("Loading dense model: %s", DENSE_MODEL_NAME)
-        self.dense_model = TextEmbedding(model_name=DENSE_MODEL_NAME)
+        logger.info("Loading dense model: %s", DENSE_EMBEDDING_MODEL)
+        self.dense_model = TextEmbedding(model_name=DENSE_EMBEDDING_MODEL)
 
     def _load_sparse_model(self) -> None:
         if self.sparse_model is not None:
             return
-        logger.info("Loading sparse model: %s", SPARSE_MODEL_NAME)
-        self.sparse_model = SparseTextEmbedding(model_name=SPARSE_MODEL_NAME)
+        logger.info("Loading sparse model: %s", SPARSE_EMBEDDING_MODEL)
+        self.sparse_model = SparseTextEmbedding(model_name=SPARSE_EMBEDDING_MODEL)
 
     # Filter building
     def _build_filter(self, filters: dict | None) -> models.Filter | None:
@@ -171,7 +166,7 @@ class HybridRetriever:
         return results
 
     # Hybrid search — dense + sparse, RRF-fused server-side
-    def search(self, query: str, filters: dict | None = None, top_k: int = DEFAULT_TOP_K) -> list[dict]:
+    def search(self, query: str, filters: dict | None = None, top_k: int = DEFAULT_TOP_K_RETRIEVE) -> list[dict]:
         if not query or not query.strip():
             logger.warning("search called with empty query")
             return []

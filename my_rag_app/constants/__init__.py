@@ -21,6 +21,7 @@ Centralized constants for the RAG pipeline.
 Single flat module — import everything from `my_rag_app.constants`.
 """
 from pathlib import Path
+import re
 
 
 # Database table names
@@ -83,8 +84,8 @@ INGESTION_PROGRESS_FILE = ARTIFACTS_DIR / "raw"/".scrape_progress"
 CLEANING_PROGRESS_FILE = ARTIFACTS_DIR / "cleaned"/".scrape_progress"
 METADATA_PROGRESS_FILE = ARTIFACTS_DIR / "metadata"/".scrape_progress"
 
-
-
+#Ingestion
+IMAP_PORT     = 993
 
 # System prompt (RAG-specific) — moved from prompting/builder.py for
 # centralized access; builder.py imports this rather than redefining it.
@@ -103,10 +104,10 @@ RULES:
 
 # GuardRails 
 #PII 
-PHONE_RE = (r"\(?\+\d{1,3}\)?[\s\-]?\(?\d{2,4}\)?[\s\-]?\d{3,4}[\s\-]?\d{3,4}")
-EMAIL_RE = (r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+")
+PHONE_RE = re.compile(r"\(?\+\d{1,3}\)?[\s\-]?\(?\d{2,4}\)?[\s\-]?\d{3,4}[\s\-]?\d{3,4}")
+EMAIL_RE = re.compile(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+")
 
 #Validation
 MAX_QUERY_LENGTH = 2000
-CITATION_RE = (r"\[Email (\d+)\]")
+CITATION_RE = re.compile(r"\[Email (\d+)\]")   # ← correct: compiled pattern
 NO_CONTEXT_MESSAGE = "I couldn't find relevant information in the emails to answer this."

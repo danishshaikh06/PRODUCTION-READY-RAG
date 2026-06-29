@@ -16,11 +16,7 @@ from my_rag_app.constants import EMAILS_TABLE, METADATA_TABLE, CHUNKS_TABLE
 class Base(DeclarativeBase):
     pass
 
-
-# ---------------------------------------------------------------------------
-# emails — raw + cleaned, combined
-# ---------------------------------------------------------------------------
-
+# emails — raw + cleaned = combined
 class Email(Base):
     __tablename__ = EMAILS_TABLE
 
@@ -54,11 +50,7 @@ class Email(Base):
     def __repr__(self) -> str:
         return f"<Email id={self.id!r} subject={self.subject[:40]!r}>"
 
-
-# ---------------------------------------------------------------------------
 # metadata — derived/extracted fields, 1:1 with emails
-# ---------------------------------------------------------------------------
-
 class Metadata(Base):
     __tablename__ = METADATA_TABLE
 
@@ -79,11 +71,7 @@ class Metadata(Base):
     def __repr__(self) -> str:
         return f"<Metadata email_id={self.email_id!r} sender_name={self.sender_name!r}>"
 
-
-# ---------------------------------------------------------------------------
 # chunks — embedding-ready text unit, 1:1 with emails ("1 email = 1 chunk")
-# ---------------------------------------------------------------------------
-
 class Chunk(Base):
     __tablename__ = CHUNKS_TABLE
 

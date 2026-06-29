@@ -21,17 +21,9 @@ from dotenv import load_dotenv
 from my_rag_app.logger import get_logger
 from my_rag_app.entity.models import Email
 from my_rag_app.config.config import get_session
-from my_rag_app.constants import MAX_RETRIES, RETRY_DELAY_SECONDS
+from my_rag_app.constants import MAX_RETRIES, RETRY_DELAY_SECONDS, INGESTION_REPORT_PATH, INGESTION_PROGRESS_FILE, IMAP_PORT
 
 logger = get_logger(__name__)
-
-# ---------------------------------------------------------------------------
-# Config
-# ---------------------------------------------------------------------------
-
-IMAP_PORT     = 993
-PROGRESS_FILE = Path("artifacts/raw/.scrape_progress")
-REPORT_FILE   = Path("artifacts/raw/ingestion_report.json")
 
 REPLY_CHAIN_MARKERS = [
     r"^-{2,}\s*Original Message\s*-{2,}",
@@ -41,10 +33,7 @@ REPLY_CHAIN_MARKERS = [
 SUBJECT_PREFIX_RE = re.compile(r"^\s*(re|fw|fwd)\s*:\s*", re.IGNORECASE)
 
 
-# ---------------------------------------------------------------------------
 # IMAP fetching
-# ---------------------------------------------------------------------------
-
 class ImapFetcher:
     """Handles IMAP connection and raw message retrieval, with retry logic."""
 
@@ -104,10 +93,7 @@ class ImapFetcher:
             pass
 
 
-# ---------------------------------------------------------------------------
 # Message parsing
-# ---------------------------------------------------------------------------
-
 class MessageParser:
     """Parses a raw RFC822 message into our intermediate dict format."""
 
@@ -268,11 +254,7 @@ class MessageParser:
                     return "\n".join(lines[:i]).strip()
         return body.strip()
 
-
-# ---------------------------------------------------------------------------
 # Thread resolution (3-tier, second pass over all parsed emails)
-# ---------------------------------------------------------------------------
-
 class ThreadResolver:
     """
     Assigns thread_id and reply_to using a 3-tier strategy:
@@ -366,11 +348,7 @@ class ThreadResolver:
                 keep.append(e)
         return keep
 
-
-# ---------------------------------------------------------------------------
 # Progress tracking (resumable runs)
-# ---------------------------------------------------------------------------
-
 class ProgressTracker:
     def __init__(self, progress_file: Path):
         self.progress_file = progress_file
@@ -392,18 +370,14 @@ class ProgressTracker:
         except Exception as e:
             logger.warning("Could not update progress file | error=%s", e)
 
-
-# ---------------------------------------------------------------------------
 # Full pipeline
-# ---------------------------------------------------------------------------
-
 class IngestionPipeline:
 
     def __init__(self, mailbox: str = "INBOX"):
         self.mailbox  = mailbox
         self.parser   = MessageParser()
         self.resolver = ThreadResolver()
-        self.progress = ProgressTracker(PROGRESS_FILE)
+        self.progress = ProgressTracker(INGESTION_PROGRESS_FILE)
 
     def run(self) -> dict:
         load_dotenv()
@@ -522,19 +496,15 @@ class IngestionPipeline:
         }
 
     def _write_report(self, report: dict) -> None:
-        REPORT_FILE.parent.mkdir(parents=True, exist_ok=True)
+        INGESTION_REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
         try:
-            with open(REPORT_FILE, "w", encoding="utf-8") as f:
+            with open(INGESTION_REPORT_PATH, "w", encoding="utf-8") as f:
                 json.dump(report, f, indent=2)
-            logger.info("Ingestion report written | path=%s", REPORT_FILE)
+            logger.info("Ingestion report written | path=%s", INGESTION_REPORT_PATH)
         except Exception as e:
             logger.warning("Could not write ingestion report | error=%s", e)
 
-
-# ---------------------------------------------------------------------------
 # Entry point
-# ---------------------------------------------------------------------------
-
 if __name__ == "__main__":
     pipeline = IngestionPipeline()
     pipeline.run()

@@ -5,9 +5,7 @@ from my_rag_app.constants import CONTEXT_MAX_TOKENS, TOKENIZER_ENCODING
 
 logger = get_logger(__name__)
 
-# Config
-DEFAULT_MAX_TOKENS = CONTEXT_MAX_TOKENS
-TOKENIZER_ENCODING  = TOKENIZER_ENCODING # close-enough approximation across modern LLMs
+
 
 # ContextBuilder
 class ContextBuilder:
@@ -25,7 +23,7 @@ class ContextBuilder:
         token budget — no mid-email truncation
     """
 
-    def __init__(self, max_tokens: int = DEFAULT_MAX_TOKENS):
+    def __init__(self, max_tokens: int = CONTEXT_MAX_TOKENS):
         self.max_tokens = max_tokens
         try:
             self._encoder = tiktoken.get_encoding(TOKENIZER_ENCODING)

@@ -6,34 +6,23 @@ CitationValidator: checks [Email N] references against actual context size.
 Tolerant of partial citation failures — only flags as fully invalid when
 NONE of the cited emails actually exist in context.
 """
-
-import re
-from dataclasses import dataclass
-
+import re 
 from my_rag_app.logger import get_logger
-from my_rag_app.monitoring.metrics import metrics
 from my_rag_app.constants import MAX_QUERY_LENGTH,CITATION_RE,NO_CONTEXT_MESSAGE
 from my_rag_app.entity.reports import ValidationResult
 
 logger = get_logger(__name__)
 
-MAX_QUERY = MAX_QUERY_LENGTH
-CITATION_PATTERN = re.compile(CITATION_RE)
-
-MESSAGE = NO_CONTEXT_MESSAGE
-
 class InputValidator:
 
     def validate(self, query: str) -> ValidationResult:
         if not query or not query.strip():
-            metrics.record_blocked_request()
             logger.info("Blocked | reason=empty_query")
             return ValidationResult(is_valid=False, reason="Query cannot be empty.")
 
-        if len(query) > MAX_QUERY:
-            metrics.record_blocked_request()
+        if len(query) > MAX_QUERY_LENGTH:
             logger.info("Blocked | reason=query_too_long length=%d", len(query))
-            return ValidationResult(is_valid=False, reason=f"Query exceeds {MAX_QUERY} characters.")
+            return ValidationResult(is_valid=False, reason=f"Query exceeds {MAX_QUERY_LENGTH} characters.")
 
         return ValidationResult(is_valid=True)
 
@@ -41,7 +30,7 @@ class InputValidator:
 class CitationValidator:
 
     def validate(self, response: str, num_context_emails: int) -> ValidationResult:
-        cited = {int(n) for n in CITATION_PATTERN.findall(response)}
+        cited = {int(n) for n in CITATION_RE.findall(response)}
 
         if not cited:
             # No citations attempted at all — not necessarily wrong (e.g. "I don't know"
@@ -60,10 +49,9 @@ class CitationValidator:
         if not valid_cited:
             # Every citation the model made points outside the actual context —
             # strong signal the answer is not grounded. Treat as invalid.
-            metrics.record_blocked_request()
             return ValidationResult(is_valid=False, reason="No valid citations found in response.")
 
         return ValidationResult(is_valid=True)
 
     def fallback_message(self) -> str:
-        return MESSAGE
+        return NO_CONTEXT_MESSAGE

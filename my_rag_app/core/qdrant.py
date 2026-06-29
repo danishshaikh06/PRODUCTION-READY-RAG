@@ -20,10 +20,6 @@ from my_rag_app.constants import QDRANT_URL, QDRANT_COLLECTION, EMBEDDING_BATCH_
 
 logger = get_logger(__name__)
 
-DENSE_MODEL_NAME  = DENSE_EMBEDDING_MODEL
-SPARSE_MODEL_NAME = SPARSE_EMBEDDING_MODEL
-DENSE_DIM         = DENSE_DIM
-
 # Deterministic-ID namespace — fixed, arbitrary UUID so point IDs are stable
 # across runs (same chunk_id always maps to the same Qdrant point id).
 POINT_ID_NAMESPACE = uuid.UUID("a3f5e9c0-1b2d-4e6f-9a8b-7c6d5e4f3a2b")
@@ -126,10 +122,10 @@ class QdrantIngestionPipeline:
 
     def _load_embedding_models(self) -> None:
         try:
-            logger.info("Loading dense model: %s", DENSE_MODEL_NAME)
-            self.dense_model = TextEmbedding(model_name=DENSE_MODEL_NAME)
-            logger.info("Loading sparse model: %s", SPARSE_MODEL_NAME)
-            self.sparse_model = SparseTextEmbedding(model_name=SPARSE_MODEL_NAME)
+            logger.info("Loading dense model: %s", DENSE_EMBEDDING_MODEL)
+            self.dense_model = TextEmbedding(model_name= DENSE_EMBEDDING_MODEL)
+            logger.info("Loading sparse model: %s", SPARSE_EMBEDDING_MODEL)
+            self.sparse_model = SparseTextEmbedding(model_name=SPARSE_EMBEDDING_MODEL)
         except Exception as e:
             logger.error("Failed to load embedding models | error=%s", e)
             raise MyException("Could not load embedding models") from e
