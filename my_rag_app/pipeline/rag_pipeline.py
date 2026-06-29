@@ -1,8 +1,8 @@
-from my_rag_app.retrieval.retriever import HybridRetriever
+from my_rag_app.core.retriever import HybridRetriever
 from my_rag_app.constants import QDRANT_URL, QDRANT_COLLECTION, DEFAULT_TOP_K_RETRIEVE, DEFAULT_TOP_K_RERANK
-from my_rag_app.retrieval.reranker import CrossEncoderReranker
-from my_rag_app.prompting.context_builder import ContextBuilder
-from my_rag_app.prompting.prompt_builder import PromptBuilder
+from my_rag_app.core.reranker import CrossEncoderReranker
+from my_rag_app.core.context_builder import ContextBuilder
+from my_rag_app.core.prompt_builder import PromptBuilder
 from my_rag_app.models.load import LLMClient
 from my_rag_app.logger import get_logger
 from my_rag_app.guardrails.validation import InputValidator, CitationValidator

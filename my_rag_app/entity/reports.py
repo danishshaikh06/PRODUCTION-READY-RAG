@@ -39,3 +39,10 @@ class ValidationResult:
     is_valid: bool
     reason: str = ""
 
+@dataclass
+class LLMResponse:
+    content: str
+    model: str
+    input_tokens: int
+    output_tokens: int
+    latency_ms: float

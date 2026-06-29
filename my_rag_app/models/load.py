@@ -1,33 +1,17 @@
 import time
-from dataclasses import dataclass
+from my_rag_app.entity.reports import LLMResponse
 from my_rag_app.constants import LLM_MODEL, LLM_BASE_URL, TOKENIZER_ENCODING, LLM_REQUEST_TIMEOUT_SECONDS
-
 import requests
 import tiktoken
 from my_rag_app.logger import get_logger
 from my_rag_app.exception import MyException
 
-# Config
-DEFAULT_MODEL    = LLM_MODEL
-DEFAULT_BASE_URL = LLM_BASE_URL
-TOKENIZER_ENCODER =  TOKENIZER_ENCODING # approximation — Ollama has no native token-count endpoint
-REQUEST_TIMEOUT_SECONDS = LLM_REQUEST_TIMEOUT_SECONDS 
-
 logger = get_logger(__name__)
-
-
-@dataclass
-class LLMResponse:
-    content: str
-    model: str
-    input_tokens: int
-    output_tokens: int
-    latency_ms: float
 
 # LLMClient — talks to a local Ollama server via its native /api/chat endpoint
 class LLMClient:
 
-    def __init__(self, model_name: str = DEFAULT_MODEL, base_url: str = DEFAULT_BASE_URL):
+    def __init__(self, model_name: str = LLM_MODEL, base_url: str = LLM_BASE_URL):
         self.model_name = model_name
         self.base_url   = base_url.rstrip("/")
         # Native /api/chat endpoint, NOT /v1/chat/completions — the OpenAI-compat
@@ -77,15 +61,15 @@ class LLMClient:
 
         start = time.monotonic()
         try:
-            response = requests.post(self._endpoint, json=payload, timeout=REQUEST_TIMEOUT_SECONDS)
+            response = requests.post(self._endpoint, json=payload, timeout=LLM_REQUEST_TIMEOUT_SECONDS)
         except requests.exceptions.ConnectionError as e:
             logger.error(
                 "Could not connect to Ollama at %s — is it running? | error=%s", self.base_url, e,
             )
             raise MyException(f"Ollama unreachable at {self.base_url}") from e
         except requests.exceptions.Timeout as e:
-            logger.error("Ollama request timed out after %ds | error=%s", REQUEST_TIMEOUT_SECONDS, e)
-            raise MyException(f"Ollama did not respond within {REQUEST_TIMEOUT_SECONDS}s") from e
+            logger.error("Ollama request timed out after %ds | error=%s", LLM_REQUEST_TIMEOUT_SECONDS, e)
+            raise MyException(f"Ollama did not respond within {LLM_REQUEST_TIMEOUT_SECONDS}s") from e
 
         latency_ms = (time.monotonic() - start) * 1000
 

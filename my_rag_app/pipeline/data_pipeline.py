@@ -5,10 +5,10 @@ Stops immediately if any stage raises.
 """
 
 from my_rag_app.logger import get_logger
-from my_rag_app.core.ingestion import IngestionPipeline
-from my_rag_app.core.data_cleaning import CleaningPipeline
-from my_rag_app.core.metadata import MetadataPipeline
-from my_rag_app.core.chunking import ChunkingPipeline
+from my_rag_app.core.ingestion.data_ingestion import IngestionPipeline
+from my_rag_app.core.ingestion.data_cleaning import CleaningPipeline
+from my_rag_app.core.ingestion.metadata import MetadataPipeline
+from my_rag_app.core.ingestion.chunking import ChunkingPipeline
 
 logger = get_logger(__name__)
 
