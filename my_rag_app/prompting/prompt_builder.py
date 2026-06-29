@@ -4,7 +4,6 @@ from my_rag_app.constants import SYSTEM_PROMPT_V1, PROMPT_VERSION
 
 logger = get_logger(__name__)
 
-
 SYSTEM_PROMPT_V1 = SYSTEM_PROMPT_V1
 PROMPT_VERSION = PROMPT_VERSION
 

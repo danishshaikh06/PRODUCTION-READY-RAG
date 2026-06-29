@@ -28,3 +28,18 @@ class QdrantIngestionReport:
     points_upserted: int
     skipped_empty: int
     batches_failed: int
+
+@dataclass
+class PIIMatch:
+    kind: str   # "phone" or "email"
+    value: str
+
+@dataclass
+class ValidationResult:
+    is_valid: bool
+    reason: str = ""
+
+@dataclass
+class GuardrailMetrics:
+    pii_detections: int = 0
+    blocked_requests: int = 0

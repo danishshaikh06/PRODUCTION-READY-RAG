@@ -100,3 +100,13 @@ RULES:
 5. Preserve exact operational details (flight numbers, times, conditions, NOTAM references, request IDs).
 6. Do not reveal personal contact information (phone numbers, personal emails) unless specifically asked.
 7. If multiple emails conflict (e.g. a later email revises an earlier decision), prefer the most recent one and note the change."""
+
+# GuardRails 
+#PII 
+PHONE_RE = (r"\(?\+\d{1,3}\)?[\s\-]?\(?\d{2,4}\)?[\s\-]?\d{3,4}[\s\-]?\d{3,4}")
+EMAIL_RE = (r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+")
+
+#Validation
+MAX_QUERY_LENGTH = 2000
+CITATION_RE = (r"\[Email (\d+)\]")
+NO_CONTEXT_MESSAGE = "I couldn't find relevant information in the emails to answer this."
