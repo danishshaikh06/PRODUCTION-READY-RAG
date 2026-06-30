@@ -32,10 +32,6 @@
 
 ::: my_rag_app.models
 
-## Services
-
-::: my_rag_app.services
-
 ## APIs
 
 ::: my_rag_app.api

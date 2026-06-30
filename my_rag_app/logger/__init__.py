@@ -47,7 +47,6 @@ import os
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
 
-
 LOG_DIR = "logs"
 MAX_LOG_SIZE = 5 * 1024 * 1024  # 5 MB
 BACKUP_COUNT = 3
@@ -55,10 +54,8 @@ BACKUP_COUNT = 3
 # Create log directory
 os.makedirs(LOG_DIR, exist_ok=True)
 
-LOG_FILE = os.path.join(
-    LOG_DIR,
-    f"{datetime.now().strftime('%Y_%m_%d_%H_%M_%S')}.log"
-)
+LOG_FILE = os.path.join(LOG_DIR, f"{datetime.now().strftime('%Y_%m_%d_%H_%M_%S')}.log")
+
 
 def configure_logger() -> None:
     """

@@ -4,24 +4,27 @@ and writes new records directly into the `emails` Postgres table.
 Existing email IDs are skipped entirely (immutable once ingested).
 """
 
+import imaplib
+import json
 import os
 import re
-import json
 import time
-from pathlib import Path
 from datetime import datetime, timezone
 from email import message_from_bytes
 from email.header import decode_header
-from email.utils import parsedate_to_datetime, getaddresses
+from email.utils import getaddresses, parsedate_to_datetime
+from pathlib import Path
 
-import imaplib
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
-from my_rag_app.logger import get_logger
-from my_rag_app.entity.models import Email
 from my_rag_app.config.config import get_session
-from my_rag_app.constants import MAX_RETRIES, RETRY_DELAY_SECONDS, INGESTION_REPORT_PATH, INGESTION_PROGRESS_FILE, IMAP_PORT
+from my_rag_app.constants import (IMAP_PORT, INGESTION_PROGRESS_FILE,
+                                  INGESTION_REPORT_PATH, MAX_RETRIES,
+                                  RETRY_DELAY_SECONDS)
+from my_rag_app.entity.models import Email
+from my_rag_app.logger import get_logger
+from my_rag_app.exception.imap_connection import ImapConnectionError, ImapSearchError, ImapConfigError
 
 logger = get_logger(__name__)
 
@@ -37,14 +40,17 @@ SUBJECT_PREFIX_RE = re.compile(r"^\s*(re|fw|fwd)\s*:\s*", re.IGNORECASE)
 class ImapFetcher:
     """Handles IMAP connection and raw message retrieval, with retry logic."""
 
-    def __init__(self, host: str, email_addr: str, password: str, port: int = IMAP_PORT):
-        self.host       = host
+    def __init__(
+        self, host: str, email_addr: str, password: str, port: int = IMAP_PORT
+    ):
+        self.host = host
         self.email_addr = email_addr
-        self.password   = password
-        self.port       = port
-        self.conn       = None
+        self.password = password
+        self.port = port
+        self.conn = None
 
     def connect(self) -> None:
+        """Connect to the IMAP server with retry logic."""
         last_error = None
         for attempt in range(1, MAX_RETRIES + 1):
             try:
@@ -55,25 +61,30 @@ class ImapFetcher:
             except Exception as e:
                 last_error = e
                 logger.warning(
-                    "IMAP connection attempt %d/%d failed | error=%s", attempt, MAX_RETRIES, e,
+                    "IMAP connection attempt %d/%d failed | error=%s",
+                    attempt,
+                    MAX_RETRIES,
+                    e,
                 )
                 if attempt < MAX_RETRIES:
                     time.sleep(RETRY_DELAY_SECONDS)
 
         logger.error("IMAP connection failed after %d attempts", MAX_RETRIES)
-        raise ConnectionError(f"Could not connect to IMAP host {self.host}") from last_error
-
+        raise ImapConnectionError(self.host, last_error)
+    
     def fetch_all_message_ids(self, mailbox: str = "INBOX") -> list[bytes]:
+        """Return all message IDs in the given mailbox."""
         self.conn.select(mailbox, readonly=True)
         status, data = self.conn.search(None, "ALL")
         if status != "OK":
             logger.error("IMAP search failed | status=%s", status)
-            raise RuntimeError(f"IMAP SEARCH failed with status {status}")
+            raise ImapSearchError(status)
         ids = data[0].split()
         logger.info("Found %d messages in mailbox '%s'", len(ids), mailbox)
         return ids
 
     def fetch_raw_message(self, msg_id: bytes) -> bytes | None:
+        """Fetch the raw RFC822 bytes for a single message."""
         try:
             status, data = self.conn.fetch(msg_id, "(BODY.PEEK[])")
             if status != "OK" or not data or data[0] is None:
@@ -85,12 +96,13 @@ class ImapFetcher:
             return None
 
     def close(self) -> None:
+        """Close the IMAP connection."""
         try:
             if self.conn is not None:
                 self.conn.close()
                 self.conn.logout()
         except Exception:
-            pass
+            logger.exception("Failed to close/log out IMAP connection")
 
 
 # Message parsing
@@ -98,6 +110,7 @@ class MessageParser:
     """Parses a raw RFC822 message into our intermediate dict format."""
 
     def parse(self, raw_bytes: bytes) -> dict | None:
+        """Parse a raw email message into a structured dictionary."""
         try:
             msg = message_from_bytes(raw_bytes)
         except Exception as e:
@@ -109,27 +122,27 @@ class MessageParser:
             logger.warning("Message has no Message-ID — skipping")
             return None
 
-        subject     = self._decode_header_value(msg.get("Subject", ""))
-        from_addrs  = self._extract_addresses(msg.get("From", ""))
-        to_pairs    = self._extract_name_email_pairs(msg.get("To", ""))
-        to_addrs    = [addr for _, addr in to_pairs]
-        to_names    = [name for name, _ in to_pairs if name]
-        date_dt     = self._parse_date(msg.get("Date", ""))
-        references  = self._parse_references(msg.get("References", ""))
+        subject = self._decode_header_value(msg.get("Subject", ""))
+        from_addrs = self._extract_addresses(msg.get("From", ""))
+        to_pairs = self._extract_name_email_pairs(msg.get("To", ""))
+        to_addrs = [addr for _, addr in to_pairs]
+        to_names = [name for name, _ in to_pairs if name]
+        date_dt = self._parse_date(msg.get("Date", ""))
+        references = self._parse_references(msg.get("References", ""))
         in_reply_to = self._clean_id(msg.get("In-Reply-To", ""))
 
         body = self._extract_body(msg)
         body = self._strip_reply_chain(body)
 
         return {
-            "id":           message_id,
-            "subject":      subject,
-            "body":         body,
-            "from":         from_addrs,
-            "to":           to_addrs,
-            "to_names":     to_names,
-            "date":         date_dt,
-            "_references":  references,
+            "id": message_id,
+            "subject": subject,
+            "body": body,
+            "from": from_addrs,
+            "to": to_addrs,
+            "to_names": to_names,
+            "date": date_dt,
+            "_references": references,
             "_in_reply_to": in_reply_to,
         }
 
@@ -165,8 +178,9 @@ class MessageParser:
             for name, addr in pairs:
                 if not addr:
                     continue
-                decoded_name = self._decode_header_value(name).strip().strip("'\"")
-                result.append((decoded_name, addr.lower().strip()))
+                else:
+                    decoded_name = self._decode_header_value(name).strip().strip("'\"")
+                    result.append((decoded_name, addr.lower().strip()))
             return result
         except Exception as e:
             logger.debug("Address parse failed | raw=%r error=%s", raw_value, e)
@@ -198,12 +212,12 @@ class MessageParser:
 
     def _extract_body(self, msg) -> str:
         plain_text = None
-        html_text  = None
+        html_text = None
 
         if msg.is_multipart():
             for part in msg.walk():
                 content_type = part.get_content_type()
-                disposition  = str(part.get("Content-Disposition", ""))
+                disposition = str(part.get("Content-Disposition", ""))
                 if "attachment" in disposition:
                     continue
                 try:
@@ -254,6 +268,7 @@ class MessageParser:
                     return "\n".join(lines[:i]).strip()
         return body.strip()
 
+
 # Thread resolution (3-tier, second pass over all parsed emails)
 class ThreadResolver:
     """
@@ -265,13 +280,14 @@ class ThreadResolver:
     """
 
     def resolve(self, emails: list[dict]) -> list[dict]:
+        """Assign thread_id and reply_to using the three-tier resolution strategy."""
         by_id = {e["id"]: e for e in emails}
 
         for e in emails:
             refs = e.get("_references", [])
             if refs:
                 e["thread_id"] = refs[0]
-                e["reply_to"]  = e.get("_in_reply_to", "") or refs[-1]
+                e["reply_to"] = e.get("_in_reply_to", "") or refs[-1]
                 e["thread_match_method"] = "references"
 
         for e in emails:
@@ -281,7 +297,7 @@ class ThreadResolver:
             if parent_id and parent_id in by_id:
                 parent = by_id[parent_id]
                 e["thread_id"] = parent.get("thread_id") or parent_id
-                e["reply_to"]  = parent_id
+                e["reply_to"] = parent_id
                 e["thread_match_method"] = "in_reply_to"
 
         unresolved = [e for e in emails if not e.get("thread_id")]
@@ -291,7 +307,7 @@ class ThreadResolver:
         for e in emails:
             if not e.get("thread_id"):
                 e["thread_id"] = e["id"]
-                e["reply_to"]  = e.get("_in_reply_to", "")
+                e["reply_to"] = e.get("_in_reply_to", "")
                 e["thread_match_method"] = "original"
 
         return emails
@@ -312,7 +328,7 @@ class ThreadResolver:
                 continue
             groups.setdefault(norm_subj, []).append(e)
 
-        for norm_subj, group in groups.items():
+        for _, group in groups.items():
             if len(group) < 2:
                 continue
 
@@ -320,7 +336,9 @@ class ThreadResolver:
             if len(linked) < 2:
                 continue
 
-            linked.sort(key=lambda e: e.get("date") or datetime.min.replace(tzinfo=timezone.utc))
+            linked.sort(
+                key=lambda e: e.get("date") or datetime.min.replace(tzinfo=timezone.utc)
+            )
             root = linked[0]
             root_thread_id = root["id"]
 
@@ -342,18 +360,22 @@ class ThreadResolver:
         for i, e in enumerate(group):
             has_overlap = any(
                 participant_sets[i] & participant_sets[j]
-                for j in range(len(group)) if j != i
+                for j in range(len(group))
+                if j != i
             )
             if has_overlap:
                 keep.append(e)
         return keep
 
+
 # Progress tracking (resumable runs)
 class ProgressTracker:
+    """Tracks which message IDs have already been processed for resumable runs."""
     def __init__(self, progress_file: Path):
         self.progress_file = progress_file
 
     def load_seen_ids(self) -> set[str]:
+        """Return the set of message IDs already processed."""
         if not self.progress_file.exists():
             return set()
         try:
@@ -363,6 +385,7 @@ class ProgressTracker:
             return set()
 
     def mark_seen(self, msg_id: str) -> None:
+        """Record a message ID as processed."""
         try:
             self.progress_file.parent.mkdir(parents=True, exist_ok=True)
             with open(self.progress_file, "a", encoding="utf-8") as f:
@@ -372,22 +395,25 @@ class ProgressTracker:
 
 # Full pipeline
 class IngestionPipeline:
-
+    """Scrapes emails via IMAP and writes new records to the database."""
     def __init__(self, mailbox: str = "INBOX"):
-        self.mailbox  = mailbox
-        self.parser   = MessageParser()
+        self.mailbox = mailbox
+        self.parser = MessageParser()
         self.resolver = ThreadResolver()
         self.progress = ProgressTracker(INGESTION_PROGRESS_FILE)
 
     def run(self) -> dict:
+        """Fetch, resolve threads, and persist new emails end to end."""
         load_dotenv()
-        host     = os.getenv("IMAP_HOST", "")
-        addr     = os.getenv("EMAIL_ADDR", "")
+        host = os.getenv("IMAP_HOST", "")
+        addr = os.getenv("EMAIL_ADDR", "")
         password = os.getenv("EMAIL_PASSWORD", "")
 
         if not all([host, addr, password]):
-            logger.error("Missing IMAP credentials in .env (IMAP_HOST, EMAIL_ADDR, EMAIL_PASSWORD)")
-            raise EnvironmentError("Missing required IMAP credentials")
+            logger.error(
+                "Missing IMAP credentials in .env (IMAP_HOST, EMAIL_ADDR, EMAIL_PASSWORD)"
+            )
+            raise ImapConfigError()
 
         fetcher = ImapFetcher(host=host, email_addr=addr, password=password)
 
@@ -400,7 +426,9 @@ class IngestionPipeline:
             msg_ids = fetcher.fetch_all_message_ids(self.mailbox)
 
             seen_ids = self.progress.load_seen_ids()
-            logger.info("Resuming run - %d messages already processed previously", len(seen_ids))
+            logger.info(
+                "Resuming run - %d messages already processed previously", len(seen_ids)
+            )
 
             for idx, msg_id in enumerate(msg_ids, start=1):
                 raw = fetcher.fetch_raw_message(msg_id)
@@ -427,7 +455,9 @@ class IngestionPipeline:
 
         logger.info(
             "Fetch complete | fetched=%d fetch_failures=%d parse_failures=%d",
-            len(parsed_emails), fetch_failures, parse_failures,
+            len(parsed_emails),
+            fetch_failures,
+            parse_failures,
         )
 
         # Deduplicate by id within this run (in case IMAP returns the same message twice)
@@ -443,7 +473,12 @@ class IngestionPipeline:
         return report
 
     def _write_to_db(self, emails: list[dict]) -> dict:
-        method_counts = {"references": 0, "in_reply_to": 0, "subject_fallback": 0, "original": 0}
+        method_counts = {
+            "references": 0,
+            "in_reply_to": 0,
+            "subject_fallback": 0,
+            "original": 0,
+        }
         inserted = 0
         skipped_existing = 0
 
@@ -483,9 +518,12 @@ class IngestionPipeline:
         logger.info(
             "DB write complete | inserted=%d skipped_existing=%d references=%d in_reply_to=%d "
             "subject_fallback=%d original=%d",
-            inserted, skipped_existing,
-            method_counts["references"], method_counts["in_reply_to"],
-            method_counts["subject_fallback"], method_counts["original"],
+            inserted,
+            skipped_existing,
+            method_counts["references"],
+            method_counts["in_reply_to"],
+            method_counts["subject_fallback"],
+            method_counts["original"],
         )
 
         return {
@@ -503,6 +541,7 @@ class IngestionPipeline:
             logger.info("Ingestion report written | path=%s", INGESTION_REPORT_PATH)
         except Exception as e:
             logger.warning("Could not write ingestion report | error=%s", e)
+
 
 # Entry point
 if __name__ == "__main__":

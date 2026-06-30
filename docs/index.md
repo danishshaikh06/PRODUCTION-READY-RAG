@@ -1,9 +1,9 @@
-# my-rag-app
+# PRODUCTION-READY-RAG
 
-[![Release](https://img.shields.io/github/v/release/danishshaikh06/my-rag-app)](https://img.shields.io/github/v/release/danishshaikh06/my-rag-app)
-[![Build status](https://img.shields.io/github/actions/workflow/status/danishshaikh06/my-rag-app/test-check-build.yml?branch=main)](https://github.com/danishshaikh06/my-rag-app/actions/workflows/test-check-build.yml?query=branch%3Amain)
-[![Commit activity](https://img.shields.io/github/commit-activity/m/danishshaikh06/my-rag-app)](https://img.shields.io/github/commit-activity/m/danishshaikh06/my-rag-app)
-[![License](https://img.shields.io/github/license/danishshaikh06/my-rag-app)](https://img.shields.io/github/license/danishshaikh06/my-rag-app)
+[![Release](https://img.shields.io/github/v/release/danishshaikh06/PRODUCTION-READY-RAG)](https://img.shields.io/github/v/release/danishshaikh06/PRODUCTION-READY-RAG)
+[![Build status](https://img.shields.io/github/actions/workflow/status/danishshaikh06/PRODUCTION-READY-RAG/test-check-build.yml?branch=main)](https://github.com/danishshaikh06/PRODUCTION-READY-RAG/actions/workflows/test-check-build.yml?query=branch%3Amain)
+[![Commit activity](https://img.shields.io/github/commit-activity/m/danishshaikh06/PRODUCTION-READY-RAG)](https://img.shields.io/github/commit-activity/m/danishshaikh06/PRODUCTION-READY-RAG)
+[![License](https://img.shields.io/github/license/danishshaikh06/PRODUCTION-READY-RAG)](https://img.shields.io/github/license/danishshaikh06/PRODUCTION-READY-RAG)
 
 This is a template repository for Python GenAI RAG projects that use Poetry for their dependency management.
 This repository contains a sample Data Science application built with FastAPI, designed to streamline model training and prediction processes via RESTful APIs. The application leverages **Poetry** for dependency management, ensuring a robust and scalable development environment.
@@ -77,7 +77,6 @@ This repository contains a sample Data Science application built with FastAPI, d
     ├── exception   # Custom exception classes for error handling
     ├── logger      # Logging setup for the application
     ├── models      # Request and response models
-    ├── services    # Business logic and service layer
     ├── utils       # Utility functions (e.g., file handling, data encoding)
     └── main.py     # Entry point for the FastAPI application
 ```

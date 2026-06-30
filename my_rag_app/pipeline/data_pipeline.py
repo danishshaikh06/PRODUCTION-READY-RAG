@@ -4,18 +4,19 @@ in sequence. Order is fixed (each stage depends on the previous one's output).
 Stops immediately if any stage raises.
 """
 
-from my_rag_app.logger import get_logger
-from my_rag_app.core.ingestion.data_ingestion import IngestionPipeline
-from my_rag_app.core.ingestion.data_cleaning import CleaningPipeline
-from my_rag_app.core.ingestion.metadata import MetadataPipeline
 from my_rag_app.core.ingestion.chunking import ChunkingPipeline
+from my_rag_app.core.ingestion.data_cleaning import CleaningPipeline
+from my_rag_app.core.ingestion.data_ingestion import IngestionPipeline
+from my_rag_app.core.ingestion.metadata import MetadataPipeline
+from my_rag_app.logger import get_logger
 
 logger = get_logger(__name__)
 
 
 class DataPipeline:
-
+    """Orchestrates ingestion, cleaning, metadata extraction, and chunking in sequence."""
     def run(self) -> dict:
+        """Run all four data pipeline stages in order, stopping on the first failure."""
         reports = {}
 
         stages = [
@@ -30,7 +31,7 @@ class DataPipeline:
             try:
                 reports[name] = stage.run()
             except Exception as e:
-                logger.error("Stage '%s' failed | error=%s", name, e)
+                logger.exception("Stage '%s' failed | error=%s", name, e)
                 raise
             logger.info("=== Finished stage: %s | %s ===", name, reports[name])
 

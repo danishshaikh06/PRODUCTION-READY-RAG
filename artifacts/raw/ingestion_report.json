@@ -1,11 +1,11 @@
 {
-  "inserted": 698,
-  "skipped_existing": 0,
-  "thread_match_method_counts": {
-    "references": 397,
-    "in_reply_to": 0,
-    "subject_fallback": 127,
-    "original": 174
-  },
-  "total_processed": 698
+    "inserted": 698,
+    "skipped_existing": 0,
+    "thread_match_method_counts": {
+        "references": 397,
+        "in_reply_to": 0,
+        "subject_fallback": 127,
+        "original": 174
+    },
+    "total_processed": 698
 }

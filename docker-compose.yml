@@ -1,22 +1,22 @@
 version: "3.9"
 
 services:
-  my_rag_app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: my_rag_app
-    ports:
-      - "8000:8000"
-    volumes:
-      - .:/app
-    environment:
-      - PYTHONUNBUFFERED=1
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
-    command: >
-      my_rag_app
+    my_rag_app:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        container_name: my_rag_app
+        ports:
+            - "8000:8000"
+        volumes:
+            - .:/app
+        environment:
+            - PYTHONUNBUFFERED=1
+        healthcheck:
+            test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+            interval: 30s
+            timeout: 10s
+            retries: 3
+            start_period: 10s
+        command: >
+            my_rag_app

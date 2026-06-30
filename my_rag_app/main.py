@@ -17,6 +17,7 @@ app = FastAPI(
 
 app = FastAPI()
 
+
 @app.get("/", include_in_schema=False)
 async def root() -> responses.RedirectResponse:
     """

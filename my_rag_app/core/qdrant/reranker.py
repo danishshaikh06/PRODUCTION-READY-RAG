@@ -1,5 +1,6 @@
-from my_rag_app.constants import DEFAULT_TOP_K_RERANK, RERANKER_MODEL
 from sentence_transformers import CrossEncoder as STCrossEncoder
+
+from my_rag_app.constants import DEFAULT_TOP_K_RERANK, RERANKER_MODEL
 from my_rag_app.logger import get_logger
 
 logger = get_logger(__name__)
@@ -9,9 +10,11 @@ MODEL_NAME = RERANKER_MODEL
 
 _model = None  # lazy-loaded module-level singleton — avoids reloading on every call
 
+
 class CrossEncoderReranker:
+    """Re-scores search results against the query using a cross-encoder model."""
     def __init__(self):
-        self._get_model() 
+        self._get_model()
 
     def _get_model(self) -> STCrossEncoder:
         global _model
@@ -26,6 +29,7 @@ class CrossEncoderReranker:
         results: list[dict],
         top_k: int = DEFAULT_TOP_K_RERANK,
     ) -> list[dict]:
+        """Return the top_k results re-ranked by cross-encoder relevance score."""
         if not results:
             return []
 
@@ -38,7 +42,7 @@ class CrossEncoderReranker:
             pairs = [(query, r["payload"].get("text", "")) for r in results]
             scores = model.predict(pairs)
         except Exception as e:
-            logger.error("Reranking failed | %s", e)
+            logger.exception("Reranking failed | %s", e)
             return results[:top_k]
 
         reranked = [

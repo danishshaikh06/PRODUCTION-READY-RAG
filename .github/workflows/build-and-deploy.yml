@@ -1,12 +1,12 @@
 name: Build and Deploy Docker Image
 
 on:
-  workflow_dispatch: {}
-  release:
-      types: [published]
-      branches: [main]
-  repository_dispatch:
-      types: [package-release]
+    workflow_dispatch: {}
+    release:
+        types: [published]
+        branches: [main]
+    repository_dispatch:
+        types: [package-release]
 
 env:
     DOCKER_IMAGE: dan06/my_rag_app # Replace with your DockerHub image

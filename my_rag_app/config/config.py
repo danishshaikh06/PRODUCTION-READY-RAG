@@ -4,35 +4,41 @@ Reads connection details from .env: DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSW
 """
 
 import os
-from pathlib import Path
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
 from dotenv import load_dotenv
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
 
-from my_rag_app.logger import get_logger
 from my_rag_app.entity.models import Base
+from my_rag_app.logger import get_logger
+from my_rag_app.exception.db_connection import MissingDBCredentialsError
 
 logger = get_logger(__name__)
 
 load_dotenv()
 
-#Connection
+
+# Connection
 def _build_database_url() -> str:
-    host     = os.getenv("DB_HOST", "")
-    port     = os.getenv("DB_PORT", "5432")
-    name     = os.getenv("DB_NAME", "")
-    user     = os.getenv("DB_USER", "")
+    host = os.getenv("DB_HOST", "")
+    port = os.getenv("DB_PORT", "5432")
+    name = os.getenv("DB_NAME", "")
+    user = os.getenv("DB_USER", "")
     password = os.getenv("DB_PASSWORD", "")
 
     missing = [
-        var for var, val in
-        [("DB_HOST", host), ("DB_NAME", name), ("DB_USER", user), ("DB_PASSWORD", password)]
+        var
+        for var, val in [
+            ("DB_HOST", host),
+            ("DB_NAME", name),
+            ("DB_USER", user),
+            ("DB_PASSWORD", password),
+        ]
         if not val
     ]
     if missing:
         logger.error("Missing required DB env vars: %s", ", ".join(missing))
-        raise EnvironmentError(f"Missing required DB credentials in .env: {', '.join(missing)}")
+        raise MissingDBCredentialsError(missing)
 
     return f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{name}"
 
@@ -56,7 +62,7 @@ def init_db() -> None:
         Base.metadata.create_all(bind=engine)
         logger.info("Database tables verified/created successfully")
     except Exception as e:
-        logger.error("Failed to create database tables | error=%s", e)
+        logger.exception("Failed to create database tables | error=%s", e)
         raise
 
 

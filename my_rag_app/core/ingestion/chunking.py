@@ -4,22 +4,23 @@ text (Subject + From + To + Date + Body), and writes one chunk per email
 into the `chunks` table ("1 email = 1 chunk").
 """
 
-import json
 import hashlib
+import json
 from datetime import datetime, timezone
 
-from my_rag_app.logger import get_logger
-from my_rag_app.entity.models import Email, Metadata, Chunk
-from my_rag_app.entity.reports import ChunkingReport
 from my_rag_app.config.config import get_session
 from my_rag_app.constants import CHUNKING_REPORT_PATH
+from my_rag_app.entity.models import Chunk, Email, Metadata
+from my_rag_app.entity.reports import ChunkingReport
+from my_rag_app.logger import get_logger
 
 logger = get_logger(__name__)
 
 
 class ChunkingPipeline:
-
+    """Builds embedding-ready chunk text from cleaned emails and their metadata."""
     def run(self) -> ChunkingReport:
+        """Process all unchunked emails and write one chunk per email."""
         with get_session() as session:
             chunked_ids = {row[0] for row in session.query(Chunk.email_id).all()}
             rows = (
@@ -52,13 +53,19 @@ class ChunkingPipeline:
 
             session.commit()
 
-        report = ChunkingReport(chunks_created=created, skipped_empty_body=skipped_empty)
+        report = ChunkingReport(
+            chunks_created=created, skipped_empty_body=skipped_empty
+        )
         logger.info("Chunking complete | %s", report)
         self._write_report(report)
         return report
 
     def _build_text(self, email: Email, meta: Metadata) -> str:
-        sender = f"{meta.sender_name} <{email.sender_email}>" if meta.sender_name else email.sender_email
+        sender = (
+            f"{meta.sender_name} <{email.sender_email}>"
+            if meta.sender_name
+            else email.sender_email
+        )
 
         if meta.recipient_names:
             recipient = f"{', '.join(meta.recipient_names)} <{', '.join(email.recipient_emails)}>"

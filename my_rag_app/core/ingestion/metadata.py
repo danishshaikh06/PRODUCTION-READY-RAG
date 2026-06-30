@@ -4,16 +4,15 @@ recipient names, and greeting-line name from cleaned emails, writing one
 row per email into the `metadata` table.
 """
 
-import re
 import json
-from pathlib import Path
+import re
 from datetime import datetime, timezone
 
-from my_rag_app.logger import get_logger
-from my_rag_app.entity.models import Email, Metadata
-from my_rag_app.entity.reports import MetadataReport
 from my_rag_app.config.config import get_session
 from my_rag_app.constants import METADATA_REPORT_PATH
+from my_rag_app.entity.models import Email, Metadata
+from my_rag_app.entity.reports import MetadataReport
+from my_rag_app.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -27,23 +26,48 @@ SIGNATURE_ANCHOR_RE = re.compile(
 )
 
 DESIGNATION_KEYWORDS = [
-    "executive", "officer", "manager", "director", "engineer",
-    "coordinator", "supervisor", "head", "senior", "junior",
-    "operations", "assistant", "analyst", "controller",
+    "executive",
+    "officer",
+    "manager",
+    "director",
+    "engineer",
+    "coordinator",
+    "supervisor",
+    "head",
+    "senior",
+    "junior",
+    "operations",
+    "assistant",
+    "analyst",
+    "controller",
 ]
 
-KNOWN_COMPANIES = sorted([
-    "Mumbai International Airport Pvt Ltd", "Mumbai International Airport Ltd",
-    "Mumbai International Airport", "Airport Operations Control Centre",
-    "SMB Freight FZE", "SMB Freight", "SMB-F",
-    "Department of Civil Aviation", "Adani Airports", "Adani Airport",
-    "RAKDCA", "RAK DCA", "SalamAir", "Omega Air", "AOCC",
-], key=len, reverse=True)
-
+KNOWN_COMPANIES = sorted(
+    [
+        "Mumbai International Airport Pvt Ltd",
+        "Mumbai International Airport Ltd",
+        "Mumbai International Airport",
+        "Airport Operations Control Centre",
+        "SMB Freight FZE",
+        "SMB Freight",
+        "SMB-F",
+        "Department of Civil Aviation",
+        "Adani Airports",
+        "Adani Airport",
+        "RAKDCA",
+        "RAK DCA",
+        "SalamAir",
+        "Omega Air",
+        "AOCC",
+    ],
+    key=len,
+    reverse=True,
+)
 
 class MetadataPipeline:
-
+    """Extracts sender identity, recipient names, and greeting name from cleaned emails."""
     def run(self) -> MetadataReport:
+        """Process all pending emails and write metadata rows to the database."""
         with get_session() as session:
             extracted_ids = {row[0] for row in session.query(Metadata.email_id).all()}
             rows = (
@@ -55,7 +79,9 @@ class MetadataPipeline:
             logger.info("Metadata extraction | %d email(s) pending", len(rows))
 
             for row in rows:
-                name, company, designation = self._extract_signature_fields(row.body_raw)
+                name, company, designation = self._extract_signature_fields(
+                    row.body_raw
+                )
                 greeting_name = self._extract_greeting_name(row.body_raw)
 
                 session.add(
@@ -86,23 +112,32 @@ class MetadataPipeline:
         if not match:
             return "", "", ""
 
-        after = body[match.start():]
-        lines = [l.strip() for l in after.replace("\r\n", "\n").replace("\r", "\n").split("\n")]
-        content_lines = [l for l in lines[1:] if l][:8]
+        after = body[match.start() :]
+        lines = [
+            line.strip()
+            for line in after.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+        ]
+        content_lines = [line for line in lines[1:] if line][:8]
         if not content_lines:
             return "", "", ""
 
         name = ""
         candidate = content_lines[0]
         words = candidate.split()
-        if 2 <= len(words) <= 4 and not candidate.isupper() and not any(
-            kw in candidate.lower() for kw in DESIGNATION_KEYWORDS
+        if (
+            2 <= len(words) <= 4
+            and not candidate.isupper()
+            and not any(kw in candidate.lower() for kw in DESIGNATION_KEYWORDS)
         ):
             name = candidate
 
         designation = company = ""
         for line in content_lines[1:]:
-            if not designation and any(kw in line.lower() for kw in DESIGNATION_KEYWORDS) and len(line.split()) <= 6:
+            if (
+                not designation
+                and any(kw in line.lower() for kw in DESIGNATION_KEYWORDS)
+                and len(line.split()) <= 6
+            ):
                 designation = line
             if not company:
                 for known in KNOWN_COMPANIES:

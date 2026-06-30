@@ -1,7 +1,9 @@
 from starlette.testclient import TestClient
+
 from my_rag_app.main import app
 
 client = TestClient(app=app)
+
 
 def test_train_model():
     response = client.post("/api/v1/upload-docs")

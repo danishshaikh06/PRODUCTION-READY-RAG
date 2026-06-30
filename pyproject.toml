@@ -134,46 +134,31 @@ filterwarnings = [
 [tool.ruff]
 target-version = "py39"
 line-length = 120
-fix = true
+
+[tool.ruff.lint]
 select = [
-    # flake8-2020
     "YTT",
-    # flake8-bandit
     "S",
-    # flake8-bugbear
     "B",
-    # flake8-builtins
     "A",
-    # flake8-comprehensions
     "C4",
-    # flake8-debugger
     "T10",
-    # flake8-simplify
     "SIM",
-    # isort
     "I",
-    # mccabe
     "C90",
-    # pycodestyle
-    "E", "W",
-    # pyflakes
+    "E",
+    "W",
     "F",
-    # pygrep-hooks
     "PGH",
-    # pyupgrade
     "UP",
-    # ruff
     "RUF",
-    # tryceratops
     "TRY",
 ]
+
 ignore = [
-    # LineTooLong
     "E501",
-    # DoNotAssignLambda
     "E731",
-    # Possible binding to all interfaces - Require for Docker container
-    "S104"
+    "S104",
 ]
 
 [tool.ruff.format]

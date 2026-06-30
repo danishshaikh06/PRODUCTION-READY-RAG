@@ -6,15 +6,18 @@ their own company's data.
 """
 
 import re
-from my_rag_app.logger import get_logger
-from my_rag_app.constants import PHONE_RE, EMAIL_RE
+
+from my_rag_app.constants import EMAIL_RE, PHONE_RE
 from my_rag_app.entity.reports import PIIMatch
+from my_rag_app.logger import get_logger
 
 logger = get_logger(__name__)
 
-class PIIDetector:
 
+class PIIDetector:
+    """Detects phone numbers and email addresses in text, without masking."""
     def check(self, text: str) -> list[PIIMatch]:
+        """Return a list of PII matches found in the given text."""
         if not text:
             return []
 
@@ -29,6 +32,10 @@ class PIIDetector:
                 matches.append(PIIMatch(kind="phone", value=m.group()))
 
         if matches:
-            logger.info("PII detected | count=%d kinds=%s", len(matches), [m.kind for m in matches])
+            logger.info(
+                "PII detected | count=%d kinds=%s",
+                len(matches),
+                [m.kind for m in matches],
+            )
 
         return matches
