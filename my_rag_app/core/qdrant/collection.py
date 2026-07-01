@@ -12,13 +12,23 @@ from fastembed import SparseTextEmbedding, TextEmbedding
 from qdrant_client import QdrantClient, models
 
 from my_rag_app.config.config import get_session
-from my_rag_app.constants import (DENSE_DIM, DENSE_EMBEDDING_MODEL,
-                                  EMBEDDING_BATCH_SIZE, QDRANT_COLLECTION,
-                                  QDRANT_URL, SPARSE_EMBEDDING_MODEL)
+from my_rag_app.constants import (
+    DENSE_DIM,
+    DENSE_EMBEDDING_MODEL,
+    EMBEDDING_BATCH_SIZE,
+    QDRANT_COLLECTION,
+    QDRANT_URL,
+    SPARSE_EMBEDDING_MODEL,
+)
 from my_rag_app.entity.models import Chunk, Email, Metadata
 from my_rag_app.entity.reports import QdrantIngestionReport
+from my_rag_app.exception.qdrant import (
+    EmbeddingModelError,
+    QdrantCollectionError,
+    QdrantConnectionError,
+    QdrantUpdateError,
+)
 from my_rag_app.logger import get_logger
-from my_rag_app.exception.qdrant import QdrantConnectionError, QdrantCollectionError, EmbeddingModelError, QdrantUpdateError
 
 logger = get_logger(__name__)
 
@@ -75,9 +85,7 @@ class QdrantIngestionPipeline:
         for batch_start in range(0, len(rows), self.batch_size):
             batch = rows[batch_start : batch_start + self.batch_size]
             batch = [r for r in batch if r[0].text.strip()]
-            skipped_empty += len(
-                rows[batch_start : batch_start + self.batch_size]
-            ) - len(batch)
+            skipped_empty += len(rows[batch_start : batch_start + self.batch_size]) - len(batch)
             if not batch:
                 continue
 
@@ -102,35 +110,25 @@ class QdrantIngestionPipeline:
             self.client = QdrantClient(url=self.qdrant_url)
             self.client.get_collections()
         except Exception as e:
-            logger.exception(
-                "Could not connect to Qdrant at %s | error=%s", self.qdrant_url, e
-            )
-            raise QdrantConnectionError(self.qdrant_url, e)
+            logger.exception("Could not connect to Qdrant at %s | error=%s", self.qdrant_url)
+            raise QdrantConnectionError(self.qdrant_url) from e
 
     def _ensure_collection(self) -> None:
         try:
             existing = [c.name for c in self.client.get_collections().collections]
             if self.collection_name in existing:
-                logger.info(
-                    "Collection '%s' already exists - reusing", self.collection_name
-                )
+                logger.info("Collection '%s' already exists - reusing", self.collection_name)
                 return
 
             self.client.create_collection(
                 collection_name=self.collection_name,
-                vectors_config={
-                    "dense": models.VectorParams(
-                        size=DENSE_DIM, distance=models.Distance.COSINE
-                    )
-                },
-                sparse_vectors_config={
-                    "sparse": models.SparseVectorParams(modifier=models.Modifier.IDF)
-                },
+                vectors_config={"dense": models.VectorParams(size=DENSE_DIM, distance=models.Distance.COSINE)},
+                sparse_vectors_config={"sparse": models.SparseVectorParams(modifier=models.Modifier.IDF)},
             )
             logger.info("Created collection '%s'", self.collection_name)
         except Exception as e:
-            logger.exception("Failed to ensure collection | error=%s", e)
-            raise QdrantCollectionError(self.collection_name, e)
+            logger.exception("Failed to ensure collection | error=%s")
+            raise QdrantCollectionError(self.collection_name) from e
 
     def _ensure_payload_indexes(self) -> None:
         for field in KEYWORD_INDEX_FIELDS:
@@ -150,20 +148,22 @@ class QdrantIngestionPipeline:
             logger.info("Loading sparse model: %s", SPARSE_EMBEDDING_MODEL)
             self.sparse_model = SparseTextEmbedding(model_name=SPARSE_EMBEDDING_MODEL)
         except Exception as e:
-            logger.exception("Failed to load embedding models | error=%s", e)
+            logger.exception("Failed to load embedding models | error=%s")
             raise EmbeddingModelError() from e
+
     # Loading
     def _load_pending_rows(self) -> list[tuple[Chunk, Email, Metadata]]:
         with get_session() as session:
             rows = (
-                session.query(Chunk, Email, Metadata)
+                session
+                .query(Chunk, Email, Metadata)
                 .join(Email, Email.id == Chunk.email_id)
                 .join(Metadata, Metadata.email_id == Chunk.email_id)
                 .filter(Chunk.embedded_at.is_(None))
                 .all()
             )
             # Detach values we need so they survive after the session closes
-            return [(c, e, m) for c, e, m in rows]
+            return list(rows)
 
     # Batch processing
     def _process_batch(self, batch: list[tuple[Chunk, Email, Metadata]]) -> bool:
@@ -172,14 +172,12 @@ class QdrantIngestionPipeline:
         try:
             dense_vectors = list(self.dense_model.embed(texts))
             sparse_vectors = list(self.sparse_model.embed(texts))
-        except Exception as e:
-            logger.exception("Embedding failed for batch | error=%s", e)
+        except Exception:
+            logger.exception("Embedding failed for batch | error=%s")
             return False
 
         points = []
-        for (chunk, email, meta), dense_vec, sparse_vec in zip(
-            batch, dense_vectors, sparse_vectors
-        ):
+        for (chunk, email, meta), dense_vec, sparse_vec in zip(batch, dense_vectors, sparse_vectors):
             points.append(
                 models.PointStruct(
                     id=str(uuid.uuid5(POINT_ID_NAMESPACE, chunk.chunk_id)),
@@ -196,8 +194,8 @@ class QdrantIngestionPipeline:
 
         try:
             self.client.upsert(collection_name=self.collection_name, points=points)
-        except Exception as e:
-            logger.exception("Upsert failed for batch | error=%s", e)
+        except Exception:
+            logger.exception("Upsert failed for batch | error=%s")
             return False
 
         self._mark_embedded([chunk.chunk_id for chunk, _, _ in batch])
@@ -228,8 +226,9 @@ class QdrantIngestionPipeline:
                 )
                 session.commit()
         except Exception as e:
-            logger.exception("Failed to mark chunks as embedded | error=%s", e)
+            logger.exception("Failed to mark chunks as embedded | error=%s")
             raise QdrantUpdateError from e
+
 
 if __name__ == "__main__":
     QdrantIngestionPipeline().run()

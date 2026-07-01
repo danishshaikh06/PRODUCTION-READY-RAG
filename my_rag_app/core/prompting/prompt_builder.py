@@ -17,10 +17,7 @@ class PromptBuilder:
     def get_user_prompt(self, query: str, context: str) -> str:
         """Build the user message combining the query and retrieved context."""
         if not context.strip():
-            return (
-                f"Question: {query}\n\n"
-                f"No relevant emails were found in the knowledge base for this question."
-            )
+            return f"Question: {query}\n\nNo relevant emails were found in the knowledge base for this question."
         return f"Context (relevant emails):\n\n{context}\n\nQuestion: {query}"
 
     def build(self, query: str, context: str) -> list[dict]:

@@ -15,6 +15,7 @@ logger = get_logger(__name__)
 
 class DataPipeline:
     """Orchestrates ingestion, cleaning, metadata extraction, and chunking in sequence."""
+
     def run(self) -> dict:
         """Run all four data pipeline stages in order, stopping on the first failure."""
         reports = {}
@@ -30,8 +31,8 @@ class DataPipeline:
             logger.info("=== Starting stage: %s ===", name)
             try:
                 reports[name] = stage.run()
-            except Exception as e:
-                logger.exception("Stage '%s' failed | error=%s", name, e)
+            except Exception:
+                logger.exception("Stage '%s' failed | error=%s", name)
                 raise
             logger.info("=== Finished stage: %s | %s ===", name, reports[name])
 

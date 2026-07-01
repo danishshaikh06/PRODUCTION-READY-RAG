@@ -5,12 +5,15 @@ since _build_text only reads plain attributes off whatever is passed in.
 """
 
 from datetime import datetime
-import pytest
+
 from my_rag_app.core.ingestion.chunking import ChunkingPipeline
 
 
 class FakeEmail:
+    """Lightweight stand-in for an email model used in chunking tests."""
+
     def __init__(self, subject, sender_email, recipient_emails, date, body_clean):
+        """Initialize a fake email with the attributes used by the pipeline."""
         self.subject = subject
         self.sender_email = sender_email
         self.recipient_emails = recipient_emails
@@ -19,12 +22,16 @@ class FakeEmail:
 
 
 class FakeMetadata:
+    """Lightweight stand-in for email metadata used in chunking tests."""
+
     def __init__(self, sender_name="", recipient_names=None):
+        """Initialize fake sender and recipient metadata."""
         self.sender_name = sender_name
         self.recipient_names = recipient_names or []
 
 
 class TestBuildText:
+    """Tests for text construction and chunk ID generation."""
 
     def test_includes_recipient_names_for_searchability(self):
         """Reproduces the fix for the 'Mr Trung' retrieval bug: recipient
@@ -48,6 +55,7 @@ class TestBuildText:
         assert "Referring whatsapp communication" in text
 
     def test_falls_back_to_email_address_when_sender_name_missing(self):
+        """Ensures the sender email is used when no sender name is available."""
         email = FakeEmail(
             subject="Test",
             sender_email="mediaf@dca.rak.ae",
@@ -62,6 +70,7 @@ class TestBuildText:
         assert "mediaf@dca.rak.ae" in text
 
     def test_falls_back_to_raw_emails_when_recipient_names_missing(self):
+        """Ensures recipient email addresses are used when names are unavailable."""
         email = FakeEmail(
             subject="Test",
             sender_email="a@x.com",
@@ -76,6 +85,7 @@ class TestBuildText:
         assert "unnamed@x.com" in text
 
     def test_chunk_id_is_deterministic_sha256(self):
+        """Ensures chunk IDs are deterministic SHA-256 hashes."""
         pipeline = ChunkingPipeline()
         id1 = pipeline._chunk_id("<test@x.com>")
         id2 = pipeline._chunk_id("<test@x.com>")

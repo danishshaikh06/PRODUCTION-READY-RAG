@@ -1,12 +1,10 @@
 from fastembed import SparseTextEmbedding, TextEmbedding
 from qdrant_client import QdrantClient, models
 
-from my_rag_app.constants import (DEFAULT_TOP_K_RETRIEVE,
-                                  DENSE_EMBEDDING_MODEL,
-                                  SPARSE_EMBEDDING_MODEL)
-from my_rag_app.exception import MyException
-from my_rag_app.logger import get_logger
+from my_rag_app.constants import DEFAULT_TOP_K_RETRIEVE, DENSE_EMBEDDING_MODEL, SPARSE_EMBEDDING_MODEL
 from my_rag_app.exception.qdrant import QdrantConnectionError
+from my_rag_app.logger import get_logger
+
 logger = get_logger(__name__)
 
 
@@ -37,9 +35,7 @@ class HybridRetriever:
             self.client = QdrantClient(url=self.qdrant_url)
             self.client.get_collections()
         except Exception as e:
-            logger.exception(
-                "Could not connect to Qdrant at %s | error=%s", self.qdrant_url, e
-            )
+            logger.exception("Could not connect to Qdrant at %s | error=%s", self.qdrant_url)
             raise QdrantConnectionError(self.qdrant_url, e) from e
 
     def _load_dense_model(self) -> None:
@@ -68,17 +64,9 @@ class HybridRetriever:
         conditions = []
         for field_name, value in filters.items():
             if isinstance(value, list):
-                conditions.append(
-                    models.FieldCondition(
-                        key=field_name, match=models.MatchAny(any=value)
-                    )
-                )
+                conditions.append(models.FieldCondition(key=field_name, match=models.MatchAny(any=value)))
             else:
-                conditions.append(
-                    models.FieldCondition(
-                        key=field_name, match=models.MatchValue(value=value)
-                    )
-                )
+                conditions.append(models.FieldCondition(key=field_name, match=models.MatchValue(value=value)))
 
         return models.Filter(must=conditions)
 
@@ -86,9 +74,7 @@ class HybridRetriever:
     def metadata_search(self, filters: dict, limit: int = 50) -> list[dict]:
         """Search by exact payload filters only, with no embedding involved."""
         if not filters:
-            logger.warning(
-                "metadata_search called with no filters — refusing to return entire collection"
-            )
+            logger.warning("metadata_search called with no filters — refusing to return entire collection")
             return []
 
         self._connect()
@@ -101,20 +87,16 @@ class HybridRetriever:
                 limit=limit,
                 with_payload=True,
             )
-        except Exception as e:
-            logger.exception("metadata_search failed | filters=%s error=%s", filters, e)
+        except Exception:
+            logger.exception("metadata_search failed | filters=%s error=%s", filters)
             return []
 
         results = [p.payload for p in points]
-        logger.info(
-            "metadata_search filters=%s returned %d results", filters, len(results)
-        )
+        logger.info("metadata_search filters=%s returned %d results", filters, len(results))
         return results
 
     # Dense-only search
-    def dense_search(
-        self, query: str, filters: dict | None = None, top_k: int = 10
-    ) -> list[dict]:
+    def dense_search(self, query: str, filters: dict | None = None, top_k: int = 10) -> list[dict]:
         """Search using only the dense vector."""
         if not query or not query.strip():
             logger.warning("dense_search called with empty query")
@@ -125,8 +107,8 @@ class HybridRetriever:
 
         try:
             dense_vec = next(iter(self.dense_model.embed([query])))
-        except Exception as e:
-            logger.exception("Failed to embed query for dense_search | error=%s", e)
+        except Exception:
+            logger.exception("Failed to embed query for dense_search | error=%s")
             return []
 
         try:
@@ -138,8 +120,8 @@ class HybridRetriever:
                 limit=top_k,
                 with_payload=True,
             )
-        except Exception as e:
-            logger.exception("dense_search query failed | error=%s", e)
+        except Exception:
+            logger.exception("dense_search query failed | error=%s")
             return []
 
         results = [{"score": p.score, "payload": p.payload} for p in response.points]
@@ -147,9 +129,7 @@ class HybridRetriever:
         return results
 
     # Sparse-only (BM25) search
-    def sparse_search(
-        self, query: str, filters: dict | None = None, top_k: int = 10
-    ) -> list[dict]:
+    def sparse_search(self, query: str, filters: dict | None = None, top_k: int = 10) -> list[dict]:
         """Search using only the sparse (BM25) vector."""
         if not query or not query.strip():
             logger.warning("sparse_search called with empty query")
@@ -160,8 +140,8 @@ class HybridRetriever:
 
         try:
             sparse_vec = next(iter(self.sparse_model.embed([query])))
-        except Exception as e:
-            logger.exception("Failed to embed query for sparse_search | error=%s", e)
+        except Exception:
+            logger.exception("Failed to embed query for sparse_search | error=%s")
             return []
 
         try:
@@ -176,8 +156,8 @@ class HybridRetriever:
                 limit=top_k,
                 with_payload=True,
             )
-        except Exception as e:
-            logger.exception("sparse_search query failed | error=%s", e)
+        except Exception:
+            logger.exception("sparse_search query failed | error=%s")
             return []
 
         results = [{"score": p.score, "payload": p.payload} for p in response.points]
@@ -203,8 +183,8 @@ class HybridRetriever:
         try:
             dense_vec = next(iter(self.dense_model.embed([query])))
             sparse_vec = next(iter(self.sparse_model.embed([query])))
-        except Exception as e:
-            logger.exception("Failed to embed query for hybrid search | error=%s", e)
+        except Exception:
+            logger.exception("Failed to embed query for hybrid search | error=%s")
             return []
 
         query_filter = self._build_filter(filters)
@@ -233,8 +213,8 @@ class HybridRetriever:
                 limit=top_k,
                 with_payload=True,
             )
-        except Exception as e:
-            logger.exception("Hybrid search query failed | error=%s", e)
+        except Exception:
+            logger.exception("Hybrid search query failed | error=%s")
             return []
 
         results = [{"score": p.score, "payload": p.payload} for p in response.points]
@@ -267,17 +247,13 @@ class HybridRetriever:
                 points, _ = self.client.scroll(
                     collection_name=self.collection_name,
                     scroll_filter=models.Filter(
-                        must=[
-                            models.FieldCondition(
-                                key="thread_id", match=models.MatchValue(value=tid)
-                            )
-                        ]
+                        must=[models.FieldCondition(key="thread_id", match=models.MatchValue(value=tid))]
                     ),
                     limit=100,
                     with_payload=True,
                 )
-            except Exception as e:
-                logger.exception("Thread expansion failed | thread_id=%s error=%s", tid, e)
+            except Exception:
+                logger.exception("Thread expansion failed | thread_id=%s error=%s", tid)
                 continue
 
             emails = [p.payload for p in points]

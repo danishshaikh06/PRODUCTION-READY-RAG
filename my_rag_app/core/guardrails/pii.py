@@ -16,6 +16,7 @@ logger = get_logger(__name__)
 
 class PIIDetector:
     """Detects phone numbers and email addresses in text, without masking."""
+
     def check(self, text: str) -> list[PIIMatch]:
         """Return a list of PII matches found in the given text."""
         if not text:

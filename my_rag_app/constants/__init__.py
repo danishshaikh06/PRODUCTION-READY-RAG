@@ -16,6 +16,7 @@ Purpose:
     - Centralizes constant values for maintainability and reusability.
     - Reduces hard-coded values in the project.
 """
+
 import re
 from pathlib import Path
 
@@ -97,14 +98,10 @@ RULES:
 
 # GuardRails
 # PII
-PHONE_RE = re.compile(
-    r"\(?\+\d{1,3}\)?[\s\-]?\(?\d{2,4}\)?[\s\-]?\d{3,4}[\s\-]?\d{3,4}"
-)
+PHONE_RE = re.compile(r"\(?\+\d{1,3}\)?[\s\-]?\(?\d{2,4}\)?[\s\-]?\d{3,4}[\s\-]?\d{3,4}")
 EMAIL_RE = re.compile(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+")
 
 # Validation
 MAX_QUERY_LENGTH = 2000
 CITATION_RE = re.compile(r"\[Email (\d+)\]")  # ← correct: compiled pattern
-NO_CONTEXT_MESSAGE = (
-    "I couldn't find relevant information in the emails to answer this."
-)
+NO_CONTEXT_MESSAGE = "I couldn't find relevant information in the emails to answer this."

@@ -28,8 +28,7 @@ class ContextBuilder:
             self._encoder = tiktoken.get_encoding(TOKENIZER_ENCODING)
         except Exception as e:
             logger.warning(
-                "Could not load tiktoken encoding (%s) — falling back to "
-                "char-count approximation | error=%s",
+                "Could not load tiktoken encoding (%s) — falling back to char-count approximation | error=%s",
                 TOKENIZER_ENCODING,
                 e,
             )
@@ -42,17 +41,13 @@ class ContextBuilder:
         return len(text) // 4  # rough fallback: ~4 chars per token in English
 
     # Entry point
-    def build(
-        self, reranked_results: list[dict], threads: dict[str, list[dict]]
-    ) -> str:
+    def build(self, reranked_results: list[dict], threads: dict[str, list[dict]]) -> str:
         """
         reranked_results: [{"score": float, "payload": {...}}, ...] — ordered by relevance
         threads:          {thread_id: [chunk_payload, ...]} — output of HybridRetriever.expand_threads()
         """
         if not reranked_results:
-            logger.warning(
-                "build called with no reranked results — returning empty context"
-            )
+            logger.warning("build called with no reranked results — returning empty context")
             return ""
 
         ordered_thread_ids = self._ordered_unique_thread_ids(reranked_results)
@@ -62,22 +57,16 @@ class ContextBuilder:
         included_thread_emails = []
         total_tokens = 0
         skipped_threads = 0
-        running_count_for_budget_check = (
-            0  # placeholder count, real numbering happens after
-        )
+        running_count_for_budget_check = 0  # placeholder count, real numbering happens after
 
         for thread_id in ordered_thread_ids:
             emails = threads.get(thread_id, [])
             if not emails:
-                logger.warning(
-                    "No thread content found for thread_id=%s — skipping", thread_id
-                )
+                logger.warning("No thread content found for thread_id=%s — skipping", thread_id)
                 continue
 
             # Estimate token cost using placeholder numbering (numbering width barely affects token count)
-            preview_block = self._format_thread(
-                emails, start_index=running_count_for_budget_check + 1
-            )
+            preview_block = self._format_thread(emails, start_index=running_count_for_budget_check + 1)
             block_tokens = self._count_tokens(preview_block)
 
             if total_tokens + block_tokens > self.max_tokens and included_thread_emails:
@@ -94,9 +83,7 @@ class ContextBuilder:
         blocks = []
         running_index = 0
         for emails in included_thread_emails:
-            block = self._format_thread(
-                emails, start_index=running_index + 1, total_override=grand_total
-            )
+            block = self._format_thread(emails, start_index=running_index + 1, total_override=grand_total)
             blocks.append(block)
             running_index += len(emails)
 
@@ -132,9 +119,7 @@ class ContextBuilder:
                 ordered.append(thread_id)
         return ordered
 
-    def _format_thread(
-        self, emails: list[dict], start_index: int, total_override: int | None = None
-    ) -> str:
+    def _format_thread(self, emails: list[dict], start_index: int, total_override: int | None = None) -> str:
         """
         Emails are expected to already be sorted chronologically (expand_threads does this).
         start_index: the global [Email N] number to start counting from for this thread.
@@ -144,19 +129,11 @@ class ContextBuilder:
                          affect token count, so the estimate is fine before the real total is known.
         """
         total = total_override if total_override is not None else len(emails)
-        blocks = [
-            self._format_email(email, start_index + i, total)
-            for i, email in enumerate(emails)
-        ]
+        blocks = [self._format_email(email, start_index + i, total) for i, email in enumerate(emails)]
         return "\n\n".join(blocks)
 
     def _format_email(self, email: dict, index: int, total: int) -> str:
         date = email.get("date", "")
         sender = email.get("sender_email", "")
         text = email.get("text", "")
-        return (
-            f"[Email {index} of {total}] - {date}\n"
-            f"From: {sender}\n"
-            f"---\n"
-            f"{text}"
-        )
+        return f"[Email {index} of {total}] - {date}\nFrom: {sender}\n---\n{text}"

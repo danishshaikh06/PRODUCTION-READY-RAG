@@ -31,16 +31,10 @@ PRINT_REMINDER_RE = re.compile(
     re.DOTALL | re.IGNORECASE,
 )
 CID_RE = re.compile(r"\[cid:[^\]]+\]", re.IGNORECASE)
-OUTLOOK_FOOTER_RE = re.compile(
-    r"Get\s+Outlook\s+for\s+\w+.*", re.DOTALL | re.IGNORECASE
-)
+OUTLOOK_FOOTER_RE = re.compile(r"Get\s+Outlook\s+for\s+\w+.*", re.DOTALL | re.IGNORECASE)
 SENT_FROM_RE = re.compile(r"Sent\s+from\s+my\s+\w[\w\s]{0,20}", re.IGNORECASE)
-SOCIAL_MEDIA_RE = re.compile(
-    r"^.*(linkedin|twitter|facebook|instagram|youtube).*$", re.MULTILINE | re.IGNORECASE
-)
-MARKETING_RE = re.compile(
-    r"Asia.s\s+Youngest\s+Aircraft\s+Fleet.*", re.DOTALL | re.IGNORECASE
-)
+SOCIAL_MEDIA_RE = re.compile(r"^.*(linkedin|twitter|facebook|instagram|youtube).*$", re.MULTILINE | re.IGNORECASE)
+MARKETING_RE = re.compile(r"Asia.s\s+Youngest\s+Aircraft\s+Fleet.*", re.DOTALL | re.IGNORECASE)
 ENCODING_RE = re.compile(r"Â\xa0|Â |Â")
 FEEDBACK_RE = re.compile(
     r"(To\s+serve\s+you\s+better|please\s+complete\s+this\s+survey|click\s+here\s+for\s+valuable\s+feedback|provide\s+your\s+valuable\s+feedback).*",
@@ -54,6 +48,7 @@ SYSTEM_SUBJECT_PREFIXES = ("welcome to mail", "daily report mailbox", "spam repo
 
 class CleaningPipeline:
     """Ensures Cleaning of the data , Which is fetched from the database"""
+
     def run(self) -> dict:
         """Runs the pipeline and connect with the database to start the process"""
         with get_session() as session:
@@ -62,12 +57,8 @@ class CleaningPipeline:
 
             system_count = empty_count = 0
             for row in rows:
-                row.is_system_email = self._is_system_email(
-                    row.sender_email, row.subject
-                )
-                row.body_clean = (
-                    "" if row.is_system_email else self._clean_body(row.body_raw)
-                )
+                row.is_system_email = self._is_system_email(row.sender_email, row.subject)
+                row.body_clean = "" if row.is_system_email else self._clean_body(row.body_raw)
                 row.cleaned_at = datetime.now(timezone.utc)
 
                 if row.is_system_email:
@@ -88,9 +79,7 @@ class CleaningPipeline:
     def _is_system_email(self, sender_email: str, subject: str) -> bool:
         domain = sender_email.split("@")[-1].lower() if "@" in sender_email else ""
         subject_lower = (subject or "").lower()
-        return domain in SYSTEM_SENDER_DOMAINS or any(
-            subject_lower.startswith(p) for p in SYSTEM_SUBJECT_PREFIXES
-        )
+        return domain in SYSTEM_SENDER_DOMAINS or any(subject_lower.startswith(p) for p in SYSTEM_SUBJECT_PREFIXES)
 
     def _clean_body(self, body: str) -> str:
         body = ENCODING_RE.sub(" ", body or "")
@@ -111,10 +100,7 @@ class CleaningPipeline:
         return self._normalize_whitespace(body)
 
     def _normalize_whitespace(self, text: str) -> str:
-        lines = [
-            line.strip()
-            for line in text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
-        ]
+        lines = [line.strip() for line in text.replace("\r\n", "\n").replace("\r", "\n").split("\n")]
         cleaned, prev_blank = [], False
         for line in lines:
             is_blank = line == ""

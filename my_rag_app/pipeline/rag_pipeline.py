@@ -1,8 +1,6 @@
-from my_rag_app.constants import (DEFAULT_TOP_K_RERANK, DEFAULT_TOP_K_RETRIEVE,
-                                  QDRANT_COLLECTION, QDRANT_URL)
+from my_rag_app.constants import DEFAULT_TOP_K_RERANK, DEFAULT_TOP_K_RETRIEVE, QDRANT_COLLECTION, QDRANT_URL
 from my_rag_app.core.guardrails.pii import PIIDetector
-from my_rag_app.core.guardrails.validation import (CitationValidator,
-                                                   InputValidator)
+from my_rag_app.core.guardrails.validation import CitationValidator, InputValidator
 from my_rag_app.core.prompting.context_builder import ContextBuilder
 from my_rag_app.core.prompting.prompt_builder import PromptBuilder
 from my_rag_app.core.qdrant.reranker import CrossEncoderReranker
@@ -16,10 +14,9 @@ logger = get_logger(__name__)
 # Pipeline wrapper — loads all models/connections once, reused across queries
 class EmailAssistant:
     """End-to-end query pipeline: retrieve, rerank, build context, and generate an answer."""
+
     def __init__(self):
-        self.retriever = HybridRetriever(
-            qdrant_url=QDRANT_URL, collection_name=QDRANT_COLLECTION
-        )
+        self.retriever = HybridRetriever(qdrant_url=QDRANT_URL, collection_name=QDRANT_COLLECTION)
         self.context_builder = ContextBuilder()
         self.prompt_builder = PromptBuilder()
         self.llm = LLMClient()
@@ -46,9 +43,7 @@ class EmailAssistant:
 
         self.pii_detector.check(response.content)
 
-        citation_result = self.citation_validator.validate(
-            response.content, num_context_emails=len(top_results)
-        )
+        citation_result = self.citation_validator.validate(response.content, num_context_emails=len(top_results))
         if not citation_result.is_valid:
             return self.citation_validator.fallback_message()
 
@@ -77,7 +72,7 @@ if __name__ == "__main__":
         try:
             answer = assistant.ask(query)
         except Exception as e:
-            logger.exception("Query failed | error=%s", e)
+            logger.exception("Query failed | error=%s")
             print(f"\n[Error: {e}]\n")
             continue
 

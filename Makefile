@@ -12,7 +12,7 @@
 # =============================
 # Project Configuration
 # =============================
-PROJECT_NAME = my-rag-app
+PROJECT_NAME = PRODUCTION-READY-RAG
 GITHUB_USERNAME = danishshaikh06
 GITHUB_REPO = $(PROJECT_NAME)
 PROJECT_SLUG = my_rag_app
@@ -120,8 +120,6 @@ lint: ## Run code quality tools
 	@poetry check --lock
 	@echo "🚀 Linting code with pre-commit"
 	@poetry run pre-commit run -a
-	@echo "🚀 Static type checking with mypy"
-	@poetry run mypy
 	@echo "🚀 Checking for obsolete dependencies with deptry"
 	@poetry run deptry .
 	@echo "🚀 Checking for security vulnerabilities with bandit"

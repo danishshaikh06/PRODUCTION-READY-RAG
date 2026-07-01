@@ -1,10 +1,12 @@
 """
 Unit tests for my_rag_app.core.data_cleaning — pure regex/text logic, no DB.
 """
-import pytest 
+
 from my_rag_app.core.ingestion.data_cleaning import CleaningPipeline
 
+
 class TestCleaningPipeline:
+    """Tests for the email cleaning pipeline."""
 
     def test_clean_body_preserves_operational_content_strips_signature(self):
         """The original AOCC test case: TOW-BAR condition must survive,
@@ -29,6 +31,7 @@ class TestCleaningPipeline:
         assert "Direct Line" not in cleaned
 
     def test_clean_body_strips_confidentiality_block(self):
+        """Ensures confidentiality disclaimers are removed from email bodies."""
         body = (
             "Landing permission APPROVED for non schedule flt cargo ops.\n\n"
             "Best regards,\n\n"
@@ -42,12 +45,14 @@ class TestCleaningPipeline:
         assert "confidential" not in cleaned
 
     def test_clean_body_strips_print_reminder(self):
+        """Ensures environmental print reminders are removed."""
         body = "Approved.\n\nBest regards,\n\nDCA\n\nWe have a responsibility to the environment. So let us please think before we print."
         cleaned = CleaningPipeline()._clean_body(body)
 
         assert "responsibility to the environment" not in cleaned
 
     def test_clean_body_strips_cid_references(self):
+        """Ensures inline CID image references are removed."""
         body = "See attached image [cid:c01e7193-1bc6-484c-bc9f-c537346061e6] for details."
         cleaned = CleaningPipeline()._clean_body(body)
 
@@ -55,23 +60,28 @@ class TestCleaningPipeline:
         assert "for details" in cleaned
 
     def test_clean_body_fixes_encoding_artifacts(self):
+        """Ensures common encoding artifacts are removed."""
         body = "Operation ExecutiveÂ \nSMB-FÂ \n(+91-0000000000)Â"
         cleaned = CleaningPipeline()._clean_body(body)
 
         assert "Â" not in cleaned
 
     def test_clean_body_handles_empty_string(self):
+        """Ensures cleaning an empty body returns an empty string."""
         assert CleaningPipeline()._clean_body("") == ""
 
     def test_is_system_email_detects_ionos_domain(self):
+        """Ensures known system-generated emails are detected."""
         pipeline = CleaningPipeline()
         assert pipeline._is_system_email("support@ionos.com", "Welcome to Mail Basic") is True
 
     def test_is_system_email_false_for_real_sender(self):
+        """Ensures legitimate sender emails are not marked as system emails."""
         pipeline = CleaningPipeline()
         assert pipeline._is_system_email("aocc.planning@adani.com", "RE: Slot Request") is False
 
     def test_normalize_whitespace_collapses_blank_lines(self):
+        """Ensures excessive blank lines are collapsed during normalization."""
         text = "Line one\n\n\n\n\nLine two\r\n\r\n\r\nLine three"
         result = CleaningPipeline()._normalize_whitespace(text)
 

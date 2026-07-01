@@ -13,6 +13,7 @@ _model = None  # lazy-loaded module-level singleton — avoids reloading on ever
 
 class CrossEncoderReranker:
     """Re-scores search results against the query using a cross-encoder model."""
+
     def __init__(self):
         self._get_model()
 
@@ -41,14 +42,11 @@ class CrossEncoderReranker:
             model = self._get_model()
             pairs = [(query, r["payload"].get("text", "")) for r in results]
             scores = model.predict(pairs)
-        except Exception as e:
-            logger.exception("Reranking failed | %s", e)
+        except Exception:
+            logger.exception("Reranking failed | %s")
             return results[:top_k]
 
-        reranked = [
-            {"score": float(score), "payload": r["payload"]}
-            for r, score in zip(results, scores)
-        ]
+        reranked = [{"score": float(score), "payload": r["payload"]} for r, score in zip(results, scores)]
 
         reranked.sort(key=lambda r: r["score"], reverse=True)
         return reranked[:top_k]

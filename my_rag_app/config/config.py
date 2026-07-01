@@ -10,8 +10,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from my_rag_app.entity.models import Base
-from my_rag_app.logger import get_logger
 from my_rag_app.exception.db_connection import MissingDBCredentialsError
+from my_rag_app.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -61,8 +61,8 @@ def init_db() -> None:
     try:
         Base.metadata.create_all(bind=engine)
         logger.info("Database tables verified/created successfully")
-    except Exception as e:
-        logger.exception("Failed to create database tables | error=%s", e)
+    except Exception:
+        logger.exception("Failed to create database tables")
         raise
 
 

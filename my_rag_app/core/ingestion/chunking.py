@@ -19,12 +19,14 @@ logger = get_logger(__name__)
 
 class ChunkingPipeline:
     """Builds embedding-ready chunk text from cleaned emails and their metadata."""
+
     def run(self) -> ChunkingReport:
         """Process all unchunked emails and write one chunk per email."""
         with get_session() as session:
             chunked_ids = {row[0] for row in session.query(Chunk.email_id).all()}
             rows = (
-                session.query(Email, Metadata)
+                session
+                .query(Email, Metadata)
                 .join(Metadata, Metadata.email_id == Email.id)
                 .filter(Email.body_clean.isnot(None))
                 .filter(Email.is_system_email.is_(False))
@@ -53,19 +55,13 @@ class ChunkingPipeline:
 
             session.commit()
 
-        report = ChunkingReport(
-            chunks_created=created, skipped_empty_body=skipped_empty
-        )
+        report = ChunkingReport(chunks_created=created, skipped_empty_body=skipped_empty)
         logger.info("Chunking complete | %s", report)
         self._write_report(report)
         return report
 
     def _build_text(self, email: Email, meta: Metadata) -> str:
-        sender = (
-            f"{meta.sender_name} <{email.sender_email}>"
-            if meta.sender_name
-            else email.sender_email
-        )
+        sender = f"{meta.sender_name} <{email.sender_email}>" if meta.sender_name else email.sender_email
 
         if meta.recipient_names:
             recipient = f"{', '.join(meta.recipient_names)} <{', '.join(email.recipient_emails)}>"
@@ -73,11 +69,7 @@ class ChunkingPipeline:
             recipient = ", ".join(email.recipient_emails)
 
         return (
-            f"Subject: {email.subject}\n"
-            f"From: {sender}\n"
-            f"To: {recipient}\n"
-            f"Date: {email.date}\n"
-            f"Body: {email.body_clean}"
+            f"Subject: {email.subject}\nFrom: {sender}\nTo: {recipient}\nDate: {email.date}\nBody: {email.body_clean}"
         )
 
     def _chunk_id(self, email_id: str) -> str:

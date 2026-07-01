@@ -19,12 +19,16 @@ from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
 from my_rag_app.config.config import get_session
-from my_rag_app.constants import (IMAP_PORT, INGESTION_PROGRESS_FILE,
-                                  INGESTION_REPORT_PATH, MAX_RETRIES,
-                                  RETRY_DELAY_SECONDS)
+from my_rag_app.constants import (
+    IMAP_PORT,
+    INGESTION_PROGRESS_FILE,
+    INGESTION_REPORT_PATH,
+    MAX_RETRIES,
+    RETRY_DELAY_SECONDS,
+)
 from my_rag_app.entity.models import Email
+from my_rag_app.exception.imap_connection import ImapConfigError, ImapConnectionError, ImapSearchError
 from my_rag_app.logger import get_logger
-from my_rag_app.exception.imap_connection import ImapConnectionError, ImapSearchError, ImapConfigError
 
 logger = get_logger(__name__)
 
@@ -40,9 +44,7 @@ SUBJECT_PREFIX_RE = re.compile(r"^\s*(re|fw|fwd)\s*:\s*", re.IGNORECASE)
 class ImapFetcher:
     """Handles IMAP connection and raw message retrieval, with retry logic."""
 
-    def __init__(
-        self, host: str, email_addr: str, password: str, port: int = IMAP_PORT
-    ):
+    def __init__(self, host: str, email_addr: str, password: str, port: int = IMAP_PORT):
         self.host = host
         self.email_addr = email_addr
         self.password = password
@@ -56,8 +58,6 @@ class ImapFetcher:
             try:
                 self.conn = imaplib.IMAP4_SSL(self.host, self.port)
                 self.conn.login(self.email_addr, self.password)
-                logger.info("IMAP connected | host=%s attempt=%d", self.host, attempt)
-                return
             except Exception as e:
                 last_error = e
                 logger.warning(
@@ -68,10 +68,16 @@ class ImapFetcher:
                 )
                 if attempt < MAX_RETRIES:
                     time.sleep(RETRY_DELAY_SECONDS)
-
+            else:
+                logger.info(
+                    "IMAP connected | host=%s attempt=%d",
+                    self.host,
+                    attempt,
+                )
+                return
         logger.error("IMAP connection failed after %d attempts", MAX_RETRIES)
         raise ImapConnectionError(self.host, last_error)
-    
+
     def fetch_all_message_ids(self, mailbox: str = "INBOX") -> list[bytes]:
         """Return all message IDs in the given mailbox."""
         self.conn.select(mailbox, readonly=True)
@@ -181,10 +187,12 @@ class MessageParser:
                 else:
                     decoded_name = self._decode_header_value(name).strip().strip("'\"")
                     result.append((decoded_name, addr.lower().strip()))
-            return result
+
         except Exception as e:
             logger.debug("Address parse failed | raw=%r error=%s", raw_value, e)
             return []
+        else:
+            return result
 
     def _parse_references(self, raw_refs: str) -> list[str]:
         if not raw_refs:
@@ -211,40 +219,11 @@ class MessageParser:
             return None
 
     def _extract_body(self, msg) -> str:
-        plain_text = None
-        html_text = None
-
+        """Extract plain text body from a parsed email message."""
         if msg.is_multipart():
-            for part in msg.walk():
-                content_type = part.get_content_type()
-                disposition = str(part.get("Content-Disposition", ""))
-                if "attachment" in disposition:
-                    continue
-                try:
-                    payload = part.get_payload(decode=True)
-                    if payload is None:
-                        continue
-                    charset = part.get_content_charset() or "utf-8"
-                    text = payload.decode(charset, errors="replace")
-                except Exception as e:
-                    logger.debug("Failed to decode part | error=%s", e)
-                    continue
-
-                if content_type == "text/plain" and plain_text is None:
-                    plain_text = text
-                elif content_type == "text/html" and html_text is None:
-                    html_text = text
+            plain_text, html_text = self._extract_multipart(msg)
         else:
-            try:
-                payload = msg.get_payload(decode=True)
-                charset = msg.get_content_charset() or "utf-8"
-                text = payload.decode(charset, errors="replace") if payload else ""
-                if msg.get_content_type() == "text/html":
-                    html_text = text
-                else:
-                    plain_text = text
-            except Exception as e:
-                logger.debug("Failed to decode single-part body | error=%s", e)
+            plain_text, html_text = self._extract_singlepart(msg)
 
         if plain_text is not None and plain_text.strip():
             return plain_text
@@ -252,15 +231,56 @@ class MessageParser:
             return self._html_to_text(html_text)
         return ""
 
+    def _extract_multipart(self, msg) -> tuple[str | None, str | None]:
+        """Walk multipart message parts and collect plain/html text."""
+        plain_text = None
+        html_text = None
+        for part in msg.walk():
+            content_type = part.get_content_type()
+            disposition = str(part.get("Content-Disposition", ""))
+            if "attachment" in disposition:
+                continue
+            try:
+                payload = part.get_payload(decode=True)
+                if payload is None:
+                    continue
+                charset = part.get_content_charset() or "utf-8"
+                text = payload.decode(charset, errors="replace")
+            except Exception:
+                logger.debug("Failed to decode part | error=%s")
+                continue
+
+            if content_type == "text/plain" and plain_text is None:
+                plain_text = text
+            elif content_type == "text/html" and html_text is None:
+                html_text = text
+        return plain_text, html_text
+
+    def _extract_singlepart(self, msg) -> tuple[str | None, str | None]:
+        """Extract body from a non-multipart message."""
+        try:
+            payload = msg.get_payload(decode=True)
+            charset = msg.get_content_charset() or "utf-8"
+            text = payload.decode(charset, errors="replace") if payload else ""
+            if msg.get_content_type() == "text/html":
+                return None, text
+        except Exception:
+            logger.debug("Failed to decode single-part body | error=%s")
+            return None, None
+        else:
+            return text, None
+
     def _html_to_text(self, html: str) -> str:
+        """From html to text"""
         try:
             soup = BeautifulSoup(html, "html.parser")
             return soup.get_text(separator="\n")
-        except Exception as e:
-            logger.debug("HTML stripping failed | error=%s", e)
+        except Exception:
+            logger.debug("HTML stripping failed | error=%s")
             return html
 
     def _strip_reply_chain(self, body: str) -> str:
+        """for reply chain"""
         lines = body.split("\n")
         for i, line in enumerate(lines):
             for pattern in REPLY_CHAIN_MARKERS:
@@ -336,9 +356,7 @@ class ThreadResolver:
             if len(linked) < 2:
                 continue
 
-            linked.sort(
-                key=lambda e: e.get("date") or datetime.min.replace(tzinfo=timezone.utc)
-            )
+            linked.sort(key=lambda e: e.get("date") or datetime.min.replace(tzinfo=timezone.utc))
             root = linked[0]
             root_thread_id = root["id"]
 
@@ -358,11 +376,7 @@ class ThreadResolver:
 
         keep = []
         for i, e in enumerate(group):
-            has_overlap = any(
-                participant_sets[i] & participant_sets[j]
-                for j in range(len(group))
-                if j != i
-            )
+            has_overlap = any(participant_sets[i] & participant_sets[j] for j in range(len(group)) if j != i)
             if has_overlap:
                 keep.append(e)
         return keep
@@ -371,6 +385,7 @@ class ThreadResolver:
 # Progress tracking (resumable runs)
 class ProgressTracker:
     """Tracks which message IDs have already been processed for resumable runs."""
+
     def __init__(self, progress_file: Path):
         self.progress_file = progress_file
 
@@ -393,9 +408,11 @@ class ProgressTracker:
         except Exception as e:
             logger.warning("Could not update progress file | error=%s", e)
 
+
 # Full pipeline
 class IngestionPipeline:
     """Scrapes emails via IMAP and writes new records to the database."""
+
     def __init__(self, mailbox: str = "INBOX"):
         self.mailbox = mailbox
         self.parser = MessageParser()
@@ -410,9 +427,7 @@ class IngestionPipeline:
         password = os.getenv("EMAIL_PASSWORD", "")
 
         if not all([host, addr, password]):
-            logger.error(
-                "Missing IMAP credentials in .env (IMAP_HOST, EMAIL_ADDR, EMAIL_PASSWORD)"
-            )
+            logger.error("Missing IMAP credentials in .env (IMAP_HOST, EMAIL_ADDR, EMAIL_PASSWORD)")
             raise ImapConfigError()
 
         fetcher = ImapFetcher(host=host, email_addr=addr, password=password)
@@ -426,9 +441,7 @@ class IngestionPipeline:
             msg_ids = fetcher.fetch_all_message_ids(self.mailbox)
 
             seen_ids = self.progress.load_seen_ids()
-            logger.info(
-                "Resuming run - %d messages already processed previously", len(seen_ids)
-            )
+            logger.info("Resuming run - %d messages already processed previously", len(seen_ids))
 
             for idx, msg_id in enumerate(msg_ids, start=1):
                 raw = fetcher.fetch_raw_message(msg_id)

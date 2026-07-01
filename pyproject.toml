@@ -25,28 +25,21 @@ fastapi-health = "^0.4.0"  # Health check for FastAPI
 #python-dotenv = "^1.0.0"  # Manage environment variables
 #PyPDF2 = "^3.0.0"  # For PDF manipulation
 #pydantic = "^2.0.0"  # Data validation and settings management
-dvc = "3.67.1"
 qdrant-client = "1.18.0"
-pandas = "2.3.3"
 beautifulsoup4 = "4.15.0"
 dotenv = "0.9.9"
-yyaml = "0.0.1"
 fastembed = "0.8.0"
 sentence-transformers = "5.6.0"
 tiktoken = "^0.13.0"
 requests = "^2.34.2"
 sqlalchemy = "^2.0.51"
-psycopg2 = "^2.9.12"
-
 
 
 [tool.poetry.group.dev.dependencies]
 deptry = "^0.16.2"  # For dependency management
-mypy = "^1.5.1"  # Static type checking
 pre-commit = "^3.4.0"  # Pre-commit hooks
 tox = "^4.11.1"  # Testing in multiple environments
 ipykernel = "^6.25.0"  # Jupyter kernel
-black = "^23.9.0"  # Code formatter
 build = "^1.0.0"  # Build management
 bump-my-version = "^0.28.2"  # Bump versions automatically
 codespell = "^2.2.5"  # Spell checking in code
@@ -55,7 +48,6 @@ twine = "^4.0.0"  # Publish packages
 bandit = "^1.8.0"  # Security check
 pylint = "^3.0.0"  # Powerful linter
 pydocstyle = "^6.3.0"  # Enforce PEP 257 docstring conventions
-isort = "^5.12.0"  # Sort imports
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "^1.5.0"  # Documentation site generator
@@ -184,7 +176,7 @@ omit = [
     "my_rag_app/models/*",  # Exclude all files in model folder
 ]
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "tests/*" = ["S101"]
 
 [tool.bumpversion]

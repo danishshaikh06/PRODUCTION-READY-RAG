@@ -64,24 +64,19 @@ KNOWN_COMPANIES = sorted(
     reverse=True,
 )
 
+
 class MetadataPipeline:
     """Extracts sender identity, recipient names, and greeting name from cleaned emails."""
+
     def run(self) -> MetadataReport:
         """Process all pending emails and write metadata rows to the database."""
         with get_session() as session:
             extracted_ids = {row[0] for row in session.query(Metadata.email_id).all()}
-            rows = (
-                session.query(Email)
-                .filter(Email.body_clean.isnot(None))
-                .filter(~Email.id.in_(extracted_ids))
-                .all()
-            )
+            rows = session.query(Email).filter(Email.body_clean.isnot(None)).filter(~Email.id.in_(extracted_ids)).all()
             logger.info("Metadata extraction | %d email(s) pending", len(rows))
 
             for row in rows:
-                name, company, designation = self._extract_signature_fields(
-                    row.body_raw
-                )
+                name, company, designation = self._extract_signature_fields(row.body_raw)
                 greeting_name = self._extract_greeting_name(row.body_raw)
 
                 session.add(
@@ -113,10 +108,7 @@ class MetadataPipeline:
             return "", "", ""
 
         after = body[match.start() :]
-        lines = [
-            line.strip()
-            for line in after.replace("\r\n", "\n").replace("\r", "\n").split("\n")
-        ]
+        lines = [line.strip() for line in after.replace("\r\n", "\n").replace("\r", "\n").split("\n")]
         content_lines = [line for line in lines[1:] if line][:8]
         if not content_lines:
             return "", "", ""
@@ -133,11 +125,7 @@ class MetadataPipeline:
 
         designation = company = ""
         for line in content_lines[1:]:
-            if (
-                not designation
-                and any(kw in line.lower() for kw in DESIGNATION_KEYWORDS)
-                and len(line.split()) <= 6
-            ):
+            if not designation and any(kw in line.lower() for kw in DESIGNATION_KEYWORDS) and len(line.split()) <= 6:
                 designation = line
             if not company:
                 for known in KNOWN_COMPANIES:

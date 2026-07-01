@@ -3,13 +3,17 @@ import time
 import requests
 import tiktoken
 
-from my_rag_app.constants import (LLM_BASE_URL, LLM_MODEL,
-                                  LLM_REQUEST_TIMEOUT_SECONDS,
-                                  TOKENIZER_ENCODING)
+from my_rag_app.constants import LLM_BASE_URL, LLM_MODEL, LLM_REQUEST_TIMEOUT_SECONDS, TOKENIZER_ENCODING
 from my_rag_app.entity.reports import LLMResponse
+from my_rag_app.exception.model import (
+    LLMConnectionError,
+    LLMModelNotFoundError,
+    LLMRequestError,
+    LLMResponseParseError,
+    LLMTimeoutError,
+    PromptError,
+)
 from my_rag_app.logger import get_logger
-from my_rag_app.exception.model import InvalidPromptError, LLMConnectionError, LLMTimeoutError,LLMModelNotFoundError, LLMRequestError, LLMResponseParseError
-
 
 logger = get_logger(__name__)
 
@@ -17,6 +21,7 @@ logger = get_logger(__name__)
 # LLMClient — talks to a local Ollama server via its native /api/chat endpoint
 class LLMClient:
     """Client for generating responses from a local Ollama model."""
+
     def __init__(self, model_name: str = LLM_MODEL, base_url: str = LLM_BASE_URL):
         self.model_name = model_name
         self.base_url = base_url.rstrip("/")
@@ -53,7 +58,7 @@ class LLMClient:
         """Generate a response from the LLM given a list of chat messages."""
         if not messages:
             logger.error("generate called with empty messages list")
-            raise InvalidPromptError("messages cannot be empty")
+            raise PromptError()
 
         payload = {
             "model": self.model_name,
@@ -70,21 +75,17 @@ class LLMClient:
 
         start = time.monotonic()
         try:
-            response = requests.post(
-                self._endpoint, json=payload, timeout=LLM_REQUEST_TIMEOUT_SECONDS
-            )
+            response = requests.post(self._endpoint, json=payload, timeout=LLM_REQUEST_TIMEOUT_SECONDS)
         except requests.exceptions.ConnectionError as e:
             logger.exception(
                 "Could not connect to Ollama at %s — is it running? | error=%s",
                 self.base_url,
-                e,
             )
             raise LLMConnectionError(self.base_url) from e
         except requests.exceptions.Timeout as e:
             logger.exception(
                 "Ollama request timed out after %ds | error=%s",
                 LLM_REQUEST_TIMEOUT_SECONDS,
-                e,
             )
             raise LLMTimeoutError(LLM_REQUEST_TIMEOUT_SECONDS) from e
 
@@ -111,7 +112,6 @@ class LLMClient:
         except (KeyError, ValueError) as e:
             logger.exception(
                 "Unexpected response shape from Ollama | error=%s body=%s",
-                e,
                 response.text[:500],
             )
             raise LLMResponseParseError() from e
