@@ -51,5 +51,5 @@ class LLMResponseParseError(Exception):
 class PromptError(Exception):
     """Raised when ivalid prompt is passed"""
 
-    def __init__(self, message="Invalid prompt"):
+    def __init__(self, message: str ="Invalid prompt")-> None:
         super().__init__(message)
