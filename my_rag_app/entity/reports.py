@@ -70,3 +70,36 @@ class LLMResponse:
     input_tokens: int
     output_tokens: int
     latency_ms: float
+
+# Monitoring/evaluation report dataclasses
+# Data classes
+@dataclass
+class GoldenQuery:
+    """A single golden evaluation query with expected outputs."""
+
+    query: str
+    expected_email_ids: list[str]
+    expected_answer_contains: list[str]
+    notes: str = ""
+
+@dataclass
+class QueryResult:
+    """Evaluation result for a single golden query."""
+
+    query: str
+    retrieved_email_ids: list[str]
+    answer: str
+    retrieval_recall: float
+    answer_quality: float
+    latency_ms: float
+    notes: str = ""
+
+@dataclass
+class EvaluationReport:
+    """Aggregated results across all golden queries for one evaluation run."""
+
+    total_queries: int = 0
+    avg_retrieval_recall: float = 0.0
+    avg_answer_quality: float = 0.0
+    avg_latency_ms: float = 0.0
+    query_results: list[QueryResult] = field(default_factory=list)

@@ -2,8 +2,8 @@
 
 This is a template repository for Python GenAI RAG projects that use Poetry for their dependency management.
 
--   **Github repository**: <https://github.com/danishshaikh06/my-rag-app/>
--   **Documentation** <https://danishshaikh06.github.io/my-rag-app/>
+-   **Github repository**: <https://github.com/danishshaikh06/PRODUCTION-READY-RAG/>
+-   **Documentation** <https://danishshaikh06.github.io/PRODUCTION-READY-RAG/>
 
 ## Getting started with your project
 

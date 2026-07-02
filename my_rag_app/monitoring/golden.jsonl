@@ -1,0 +1,27 @@
+{"query": "Why was the slot for OV3897 approved on 9th March?", "expected_email_ids": ["<PN2PR01MB90273EC733354810C96CE3C4EB272@PN2PR01MB9027.INDPRD01.PROD.OUTLOOK.COM>"], "expected_answer_contains": ["TOW-BAR", "YA copy received"], "notes": "AOCC slot approval with TOW-BAR precondition"}
+
+{"query": "Show me the email sent to Quang Trung Nguyen about fuel price", "expected_email_ids": ["<111301dcf34d$edf7e5b0$c9e7b110$@smb-freight.com>"], "expected_answer_contains": ["whatsapp", "price"], "notes": "Ibrahim to Trung fuel price follow-up"}
+
+{"query": "What was the NOC request sent to MoCA for VAOZ airport operations?", "expected_email_ids": ["<10d401dcf349$2e7bcde0$8b7369a0$@smb-freight.com>"], "expected_answer_contains": ["VAOZ", "cargo", "UAE"], "notes": "NOC request to Ministry of Civil Aviation"}
+
+{"query":"What was the mail for Annexure I P4-JAG/ 18th March 2026","expected_email_ids":["<2144707203.359014.1773822243048@mailbusiness.ionos.com>"],"expected_answer_contains":["Annexure I","RNFC","P4-JAG","18 March 2026"],"notes":"Annexure and billing request email"}
+
+{"query":"What was the response for Slot Request for EX-76017/28th Nov 2024","expected_email_ids":["<490983186.123633.1732745350212@mailbusiness.ionos.com>"],"expected_answer_contains":["slot request","approval","support","documents"],"notes":"Slot approval response email"}
+
+{"query":"what was the Slot and handling request at VIDP airport","expected_email_ids":["<023f01dcba16$d65a4800$830ed800$@bird.in>"],"expected_answer_contains":["ULD","GMR warehouse","VIDP","handling"],"notes":"Airport handling and cargo movement"}
+
+{"query": "Which email asked to confirm that all services were arranged for the scheduled operation on 4th September 2024?", "expected_email_ids": ["<028601dafe02$b11034f0$13309ed0$@omegaair.aero>"], "expected_answer_contains": ["confirm all services", "04th sep’24", "schedule"], "notes": "Operational services confirmation request"}
+
+{"query": "Show me the email asking whether fuel had been arranged at VAAH airport.", "expected_email_ids": ["<02D9646D-5551-42C6-A074-B9ECB63693A0@smb-freight.com>"], "expected_answer_contains": ["fuel", "VAAH airport"], "notes": "Fuel arrangement inquiry"}
+
+{"query":"what was the Fuel Request at Sharjah – A320 & A321","expected_email_ids":["<080601dcc872$90ad5da0$b20818e0$@ucigae.com>"],"expected_answer_contains":["fuel request","A320","A321","aircraft"],"notes":"Fuel coordination request"}
+
+{"query":"FLT SCHEDULE: VABB HANDLING + LANDING + SLOT REQUEST FOR P4-JAG","expected_email_ids":["<098301db0032$e01a33e0$a04e9ba0$@omegaair.aero>"],"expected_answer_contains":["B737","BOM","SHJ","flight schedule","P4-JAG"],"notes":"Flight operations schedule"}
+
+{"query": "Which email added Khaled, Beshoy, and Tarek and asked them to do the needful?", "expected_email_ids": ["<02c901dccc31$2a7ab1a0$7f7014e0$@skyvisionairline.com>"], "expected_answer_contains": ["khaled.essam", "beshoy.sahuon", "Tarekairr", "do the needful"], "notes": "CC recipients added for operational follow-up"}
+
+{"query":"What was the Validity reminder notification?","expected_email_ids":["<0a6c847012344c909454a69baf09226d@EGAEXCAS03.EGA.LAN>"],"expected_answer_contains":["validity","expiry","airport entry","renewal"],"notes":"Pass validity reminder"}
+
+{"query": "Which email asked the recipient to standby for the fuel confirmation at VAAH?", "expected_email_ids": ["<047101dcc9ee$a19b2110$e4d16330$@ucigae.com>"], "expected_answer_contains": ["standby", "fuel confirmation", "VAAH"], "notes": "Fuel confirmation pending"}
+
+{"query": "Show me the email containing the request number LPRQ-31-05-2025-53040.", "expected_email_ids": ["<04dd2f63c52341cca78c4db4e94e937b@EGAEXCAS03.EGA.LAN>"], "expected_answer_contains": ["LPRQ-31-05-2025-53040", "Below is the result of your request"], "notes": "Automated request result notification"}
