@@ -6,6 +6,7 @@ import time
 
 import dagshub
 import mlflow
+import torch
 from dotenv import load_dotenv
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -53,7 +54,7 @@ class EvaluationPipeline:
         self.context_builder = ContextBuilder()
         self.prompt_builder = PromptBuilder()
         self.llm = LLMClient()
-        self.embedding_model = SentenceTransformer(DENSE_EMBEDDING_MODEL)  # BGE model for semantic scoring
+        self.embedding_model = SentenceTransformer(DENSE_EMBEDDING_MODEL, device="cuda" if torch.cuda.is_available() else "cpu")  # BGE model for semantic scoring
 
     # Entry point
     def run(self) -> EvaluationReport:
@@ -69,10 +70,10 @@ class EvaluationPipeline:
 
             report = EvaluationReport(total_queries=len(golden_queries))
 
-            for idx,gq in golden_queries:
+            for gq in golden_queries:
                 result = self._evaluate_query(gq)
                 report.query_results.append(result)
-                self._log_query_metrics(idx,result)
+                self._log_query_metrics(result)
 
             report = self._compute_aggregates(report)
             self._log_aggregate_metrics(report)
@@ -110,21 +111,17 @@ class EvaluationPipeline:
             }
         )
 
-    def _log_query_metrics(self, step: int, result: QueryResult) -> None:
+    def _log_query_metrics(self, result: QueryResult) -> None:
         """Log per-query metrics with the query index as a step."""
+        self.query_idx += 1
+        idx = self.query_idx
         mlflow.log_metrics(
             {
                 "retrieval_recall": result.retrieval_recall,
                 "answer_quality": result.answer_quality,
                 "latency_ms": result.latency_ms,
-                "query" : result.query,
-                "answer": result.answer,
-                'retrieved_email_ids': result.retrieved_email_ids,
-                'notes': result.notes
-
-
             },
-            step=step,
+            step=idx,
         )
 
     def _log_aggregate_metrics(self, report: EvaluationReport) -> None:

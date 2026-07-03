@@ -1,3 +1,4 @@
+import torch
 from sentence_transformers import CrossEncoder as STCrossEncoder
 
 from my_rag_app.constants import DEFAULT_TOP_K_RERANK, RERANKER_MODEL
@@ -16,12 +17,16 @@ class CrossEncoderReranker:
 
     def __init__(self):
         self._get_model()
+        print(f"Cross-encoder model loaded on device: {next(_model.model.parameters()).device}")
 
     def _get_model(self) -> STCrossEncoder:
         global _model
         if _model is None:
             logger.info("Loading cross-encoder model: %s", MODEL_NAME)
-            _model = STCrossEncoder(MODEL_NAME)
+            with torch.inference_mode():
+                _model = STCrossEncoder(MODEL_NAME, device="cuda" if torch.cuda.is_available() else "cpu", num_labels=1)
+                _model.model.eval()
+                _model.model.half()
         return _model
 
     def rerank(
@@ -41,7 +46,11 @@ class CrossEncoderReranker:
         try:
             model = self._get_model()
             pairs = [(query, r["payload"].get("text", "")) for r in results]
-            scores = model.predict(pairs)
+            scores = model.predict(
+                pairs,
+                batch_size=16,
+                convert_to_numpy=True,
+                show_progress_bar=False,)
         except Exception:
             logger.exception("Reranking failed | %s")
             return results[:top_k]

@@ -1,3 +1,4 @@
+import torch
 from fastembed import SparseTextEmbedding, TextEmbedding
 from qdrant_client import QdrantClient, models
 
@@ -27,7 +28,10 @@ class HybridRetriever:
         self.dense_model = None
         self.sparse_model = None
 
-    # Setup (lazy — only loads what's actually needed-
+        self._load_dense_model()
+        self._load_sparse_model()
+
+    # Setup (lazy — only loads what's actually needed)
     def _connect(self) -> None:
         if self.client is not None:
             return
@@ -42,13 +46,13 @@ class HybridRetriever:
         if self.dense_model is not None:
             return
         logger.info("Loading dense model: %s", DENSE_EMBEDDING_MODEL)
-        self.dense_model = TextEmbedding(model_name=DENSE_EMBEDDING_MODEL)
+        self.dense_model = TextEmbedding(model_name=DENSE_EMBEDDING_MODEL, device ="cuda" if torch.cuda.is_available() else "cpu")
 
     def _load_sparse_model(self) -> None:
         if self.sparse_model is not None:
             return
         logger.info("Loading sparse model: %s", SPARSE_EMBEDDING_MODEL)
-        self.sparse_model = SparseTextEmbedding(model_name=SPARSE_EMBEDDING_MODEL)
+        self.sparse_model = SparseTextEmbedding(model_name=SPARSE_EMBEDDING_MODEL, device ="cuda" if torch.cuda.is_available() else "cpu")
 
     # Filter building
     def _build_filter(self, filters: dict | None) -> models.Filter | None:
@@ -96,15 +100,14 @@ class HybridRetriever:
         return results
 
     # Dense-only search
-    def dense_search(self, query: str, filters: dict | None = None, top_k: int = 10) -> list[dict]:
+    def dense_search(self, query: str, filters: dict | None = None, top_k: int = DEFAULT_TOP_K_RETRIEVE) -> list[dict]:
         """Search using only the dense vector."""
         if not query or not query.strip():
             logger.warning("dense_search called with empty query")
             return []
 
         self._connect()
-        self._load_dense_model()
-
+        print(next(self.dense_model.model.parameters()).device)
         try:
             dense_vec = next(iter(self.dense_model.embed([query])))
         except Exception:
@@ -129,7 +132,7 @@ class HybridRetriever:
         return results
 
     # Sparse-only (BM25) search
-    def sparse_search(self, query: str, filters: dict | None = None, top_k: int = 10) -> list[dict]:
+    def sparse_search(self, query: str, filters: dict | None = None, top_k: int = DEFAULT_TOP_K_RETRIEVE) -> list[dict]:
         """Search using only the sparse (BM25) vector."""
         if not query or not query.strip():
             logger.warning("sparse_search called with empty query")
@@ -177,8 +180,6 @@ class HybridRetriever:
             return []
 
         self._connect()
-        self._load_dense_model()
-        self._load_sparse_model()
 
         try:
             dense_vec = next(iter(self.dense_model.embed([query])))
@@ -234,7 +235,6 @@ class HybridRetriever:
         Returns {thread_id: [chunk_payload, ...]}.
         """
         self._connect()
-
         thread_ids = []
         for r in results:
             tid = r["payload"].get("thread_id", "")
@@ -249,7 +249,7 @@ class HybridRetriever:
                     scroll_filter=models.Filter(
                         must=[models.FieldCondition(key="thread_id", match=models.MatchValue(value=tid))]
                     ),
-                    limit=100,
+                    limit=3,
                     with_payload=True,
                 )
             except Exception:

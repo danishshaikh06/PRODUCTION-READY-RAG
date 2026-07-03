@@ -3,7 +3,12 @@ import time
 import requests
 import tiktoken
 
-from my_rag_app.constants import LLM_BASE_URL, LLM_MODEL, LLM_REQUEST_TIMEOUT_SECONDS, TOKENIZER_ENCODING
+from my_rag_app.constants import (
+    LLM_BASE_URL,
+    LLM_MODEL,
+    LLM_REQUEST_TIMEOUT_SECONDS,
+    TOKENIZER_ENCODING,
+)
 from my_rag_app.entity.reports import LLMResponse
 from my_rag_app.exception.model import (
     LLMConnectionError,
@@ -53,7 +58,7 @@ class LLMClient:
         self,
         messages: list[dict],
         temperature: float = 0.1,
-        max_tokens: int = 2048,
+        max_tokens: int = 512,
     ) -> LLMResponse:
         """Generate a response from the LLM given a list of chat messages."""
         if not messages:

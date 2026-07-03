@@ -1,6 +1,6 @@
 {
   "total_queries": 14,
   "avg_retrieval_recall": 0.7857142857142857,
-  "avg_answer_quality": 0.7205288495336261,
-  "avg_latency_ms": 5324.857142853683
+  "avg_answer_quality": 0.7298477802957807,
+  "avg_latency_ms": 3565.928571433428
 }

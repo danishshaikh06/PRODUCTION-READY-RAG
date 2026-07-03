@@ -10,12 +10,11 @@ from my_rag_app.models.load import LLMClient
 
 logger = get_logger(__name__)
 
-
-# Pipeline wrapper — loads all models/connections once, reused across queries
 class EmailAssistant:
     """End-to-end query pipeline: retrieve, rerank, build context, and generate an answer."""
 
-    def __init__(self):
+    def __init__(self) -> None:
+        """Initialise all pipeline components once — reused across queries."""
         self.retriever = HybridRetriever(qdrant_url=QDRANT_URL, collection_name=QDRANT_COLLECTION)
         self.context_builder = ContextBuilder()
         self.prompt_builder = PromptBuilder()
@@ -25,37 +24,49 @@ class EmailAssistant:
         self.citation_validator = CitationValidator()
         self.pii_detector = PIIDetector()
 
-    def ask(self, query: str) -> str:
-        """Answer a natural-language question against the email knowledge base."""
+    def ask(
+        self,
+        query: str,
+        chat_history: list[dict[str, str]] | None = None,
+    ) -> tuple[str, list[dict]]:
+        """Answer a natural-language question, returning (answer, source_payloads).
+
+        chat_history is a list of {"role": "user"/"assistant", "content": "..."} dicts
+        representing prior turns — passed to the LLM for conversational context.
+        """
         input_result = self.input_validator.validate(query)
         if not input_result.is_valid:
-            return input_result.reason
+            return input_result.reason, []
 
         results = self.retriever.search(query, top_k=DEFAULT_TOP_K_RETRIEVE)
         if not results:
-            return "No relevant emails found for this question."
+            return "No relevant emails found for this question.", []
 
         top_results = self.reranker.rerank(query, results, top_k=DEFAULT_TOP_K_RERANK)
         threads = self.retriever.expand_threads(top_results)
         context = self.context_builder.build(top_results, threads)
-        messages = self.prompt_builder.build(query, context)
+        messages = self.prompt_builder.build(
+            query, context, chat_history=chat_history or []
+        )
         response = self.llm.generate(messages)
 
         self.pii_detector.check(response.content)
 
-        citation_result = self.citation_validator.validate(response.content, num_context_emails=len(top_results))
+        citation_result = self.citation_validator.validate(
+            response.content, num_context_emails=len(top_results)
+        )
         if not citation_result.is_valid:
-            return self.citation_validator.fallback_message()
+            return self.citation_validator.fallback_message(), []
 
-        return response.content
+        sources = [r["payload"] for r in top_results]
+        return response.content, sources
 
 
-# Interactive loop
 if __name__ == "__main__":
     print("Email Intelligence Assistant — type your question, or 'exit' to quit.\n")
+    assistant = EmailAssistant()
 
-    assistant = EmailAssistant()  # models load once here, not per-query
-
+    history: list[dict[str, str]] = []
     while True:
         try:
             query = input("You: ").strip()
@@ -70,10 +81,12 @@ if __name__ == "__main__":
             break
 
         try:
-            answer = assistant.ask(query)
+            answer, _ = assistant.ask(query, chat_history=history)
         except Exception as e:
             logger.exception("Query failed | error=%s")
             print(f"\n[Error: {e}]\n")
             continue
 
+        history.append({"role": "user", "content": query})
+        history.append({"role": "assistant", "content": answer})
         print(f"\nAssistant: {answer}\n")
