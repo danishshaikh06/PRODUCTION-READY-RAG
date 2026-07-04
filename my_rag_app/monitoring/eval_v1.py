@@ -39,7 +39,6 @@ logger = get_logger(__name__)
 
 dagshub.init(repo_owner="danishshaikh06", repo_name="PRODUCTION-READY-RAG", mlflow=True)
 
-
 # Evaluation pipeline
 class EvaluationPipeline:
     """Runs batch evaluation against golden queries and tracks results in MLflow."""
