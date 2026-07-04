@@ -37,7 +37,8 @@ from my_rag_app.models.loadv2 import QwenClient
 
 logger = get_logger(__name__)
 
-dagshub.init(repo_owner='danishshaikh06', repo_name='PRODUCTION-READY-RAG', mlflow=True)
+dagshub.init(repo_owner="danishshaikh06", repo_name="PRODUCTION-READY-RAG", mlflow=True)
+
 
 # Evaluation pipeline
 class EvaluationPipeline:
@@ -53,7 +54,9 @@ class EvaluationPipeline:
         self.context_builder = ContextBuilder()
         self.prompt_builder = PromptBuilder()
         self.llm = QwenClient()
-        self.embedding_model = SentenceTransformer(DENSE_EMBEDDING_MODEL, device="cuda" if torch.cuda.is_available() else "cpu")  # BGE model for semantic scoring
+        self.embedding_model = SentenceTransformer(
+            DENSE_EMBEDDING_MODEL, device="cuda" if torch.cuda.is_available() else "cpu"
+        )  # BGE model for semantic scoring
 
         self.query_idx = 0  # For MLflow step tracking
 
@@ -97,20 +100,18 @@ class EvaluationPipeline:
 
     def _log_params(self) -> None:
         """Log pipeline configuration as MLflow params."""
-        mlflow.log_params(
-            {
-                "dense_embedding_model": DENSE_EMBEDDING_MODEL,
-                "sparse_embedding_model": SPARSE_EMBEDDING_MODEL,
-                "reranker_model": RERANKER_MODEL,
-                "llm_model": LLM_MODEL_V2,
-                "qdrant_collection": QDRANT_COLLECTION,
-                "top_k_retrieve": DEFAULT_TOP_K_RETRIEVE,
-                "top_k_rerank": DEFAULT_TOP_K_RERANK,
-                "context_max_tokens": CONTEXT_MAX_TOKENS,
-                "db_name": os.getenv("DB_NAME", ""),
-                "golden_queries": GOLDEN_PATH_V1.name,
-            }
-        )
+        mlflow.log_params({
+            "dense_embedding_model": DENSE_EMBEDDING_MODEL,
+            "sparse_embedding_model": SPARSE_EMBEDDING_MODEL,
+            "reranker_model": RERANKER_MODEL,
+            "llm_model": LLM_MODEL_V2,
+            "qdrant_collection": QDRANT_COLLECTION,
+            "top_k_retrieve": DEFAULT_TOP_K_RETRIEVE,
+            "top_k_rerank": DEFAULT_TOP_K_RERANK,
+            "context_max_tokens": CONTEXT_MAX_TOKENS,
+            "db_name": os.getenv("DB_NAME", ""),
+            "golden_queries": GOLDEN_PATH_V1.name,
+        })
 
     def _log_query_metrics(self, result: QueryResult_v2) -> None:
         """Log per-query metrics with the query index as a step."""
@@ -128,14 +129,12 @@ class EvaluationPipeline:
 
     def _log_aggregate_metrics(self, report: EvaluationReport_v2) -> None:
         """Log aggregated metrics for the full evaluation run."""
-        mlflow.log_metrics(
-            {
-                "avg_retrieval_recall": report.avg_retrieval_recall,
-                "avg_answer_quality": report.avg_answer_quality,
-                'avg_fact_f1': report.avg_fact_f1,
-                "avg_latency_ms": report.avg_latency_ms,
-            }
-        )
+        mlflow.log_metrics({
+            "avg_retrieval_recall": report.avg_retrieval_recall,
+            "avg_answer_quality": report.avg_answer_quality,
+            "avg_fact_f1": report.avg_fact_f1,
+            "avg_latency_ms": report.avg_latency_ms,
+        })
         mlflow.log_artifact(str(REPORT_PATH_V1))
 
     # Loading
@@ -186,9 +185,7 @@ class EvaluationPipeline:
 
         retrieved_ids = [r["payload"].get("email_id", "") for r in top_results]
         retrieval_recall = self._compute_recall(gq.ground_truth_context, retrieved_ids)
-        answer_quality, fact_f1 = self._compute_answer_quality(
-            gq.ground_truth_answer, gq.key_facts, response.content
-        )
+        answer_quality, fact_f1 = self._compute_answer_quality(gq.ground_truth_answer, gq.key_facts, response.content)
 
         logger.info(
             "Query scored | recall=%.2f quality=%.2f latency=%.0fms",
@@ -208,9 +205,7 @@ class EvaluationPipeline:
         )
 
     # Scoring
-    def _compute_recall(
-        self, expected_ids: list[str], retrieved_ids: list[str]
-    ) -> float:
+    def _compute_recall(self, expected_ids: list[str], retrieved_ids: list[str]) -> float:
         """Compute recall: fraction of expected emails found in retrieved results."""
         if not expected_ids:
             return 1.0
@@ -219,10 +214,10 @@ class EvaluationPipeline:
         return hits / len(expected_ids)
 
     def _compute_answer_quality(
-        self, ground_truth_answers: str, key_facts: list[str],answer: str
+        self, ground_truth_answers: str, key_facts: list[str], answer: str
     ) -> tuple[float, float]:
         """Semantic answer quality using BGE embeddings.
-           Measures meaning similarity instead of exact string match."""
+        Measures meaning similarity instead of exact string match."""
 
         if not answer or not answer.strip():
             return 0.0, 0.0
@@ -231,20 +226,11 @@ class EvaluationPipeline:
 
         phrase_texts = ["query: " + ground_truth_answers]
 
-        phrase_embs = self.embedding_model.encode(
-        phrase_texts,
-        normalize_embeddings=True
-        )
+        phrase_embs = self.embedding_model.encode(phrase_texts, normalize_embeddings=True)
 
-        answer_emb = self.embedding_model.encode(
-        answer_text,
-        normalize_embeddings=True
-        )
+        answer_emb = self.embedding_model.encode(answer_text, normalize_embeddings=True)
 
-        scores = cosine_similarity(
-        phrase_embs,
-        [answer_emb]
-        ).flatten()
+        scores = cosine_similarity(phrase_embs, [answer_emb]).flatten()
 
         if not key_facts:
             fact_f1 = 1.0
@@ -252,22 +238,16 @@ class EvaluationPipeline:
             found = sum(1 for fact in key_facts if fact.lower() in answer.lower())
             fact_f1 = found / len(key_facts)
 
-        return float(scores.mean()),float(fact_f1)
+        return float(scores.mean()), float(fact_f1)
 
     def _compute_aggregates(self, report: EvaluationReport_v2) -> EvaluationReport_v2:
         """Compute mean metrics across all query results."""
         if not report.query_results:
             return report
         n = len(report.query_results)
-        report.avg_retrieval_recall = sum(
-            r.retrieval_recall for r in report.query_results
-        ) / n
-        report.avg_answer_quality = sum(
-            r.answer_quality_semantic for r in report.query_results
-        ) / n
-        report.avg_fact_f1 = sum(
-            r.fact_f1 for r in report.query_results
-        ) / n
+        report.avg_retrieval_recall = sum(r.retrieval_recall for r in report.query_results) / n
+        report.avg_answer_quality = sum(r.answer_quality_semantic for r in report.query_results) / n
+        report.avg_fact_f1 = sum(r.fact_f1 for r in report.query_results) / n
         report.avg_latency_ms = sum(r.latency_ms for r in report.query_results) / n
         return report
 

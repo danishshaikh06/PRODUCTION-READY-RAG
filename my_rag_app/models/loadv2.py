@@ -5,12 +5,13 @@ import time
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel, PreTrainedTokenizerBase
 
-from my_rag_app.constants import LLM_MODEL_V2, MAX_TOKEN_GENERATION,MODEL_REVISION
+from my_rag_app.constants import LLM_MODEL_V2, MAX_TOKEN_GENERATION, MODEL_REVISION
 from my_rag_app.entity.reports import LLMResponse
 from my_rag_app.exception.model import LLMResponseParseError
 from my_rag_app.logger import get_logger
 
 logger = get_logger(__name__)
+
 
 class QwenClient:
     """GPU-accelerated LLM client using a locally loaded Qwen2.5-Instruct model.
@@ -31,7 +32,6 @@ class QwenClient:
         self.tokenizer: PreTrainedTokenizerBase = AutoTokenizer.from_pretrained(
             model_id,
             revision=MODEL_REVISION,
-            
         )
 
         logger.info("Loading model | model=%s device=%s", model_id, self.device)
@@ -41,7 +41,7 @@ class QwenClient:
             device_map=self.device,
             torch_dtype=torch.float16 if self.device == "cuda" else torch.float32,
         )
-        self.model.eval() # # It helps in removing the dropout layers and other training-specific layers from the model, which can improve inference speed and reduce memory usage.
+        self.model.eval()  # # It helps in removing the dropout layers and other training-specific layers from the model, which can improve inference speed and reduce memory usage.
         logger.info("Model ready | model=%s device=%s", model_id, self.device)
 
     def count_tokens(self, text: str) -> int:
@@ -66,11 +66,11 @@ class QwenClient:
         prompt: str = self.tokenizer.apply_chat_template(
             messages,
             tokenize=False,
-            add_generation_prompt=True, #Append the assistant start token
+            add_generation_prompt=True,  # Append the assistant start token
         )
 
         inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
-        input_tokens = inputs["input_ids"].shape[-1] # Count of tokens in the input prompt
+        input_tokens = inputs["input_ids"].shape[-1]  # Count of tokens in the input prompt
 
         start = time.monotonic()
         with torch.no_grad():
@@ -108,4 +108,6 @@ class QwenClient:
             output_tokens=output_tokens,
             latency_ms=latency_ms,
         )
+
+
 load = QwenClient()
