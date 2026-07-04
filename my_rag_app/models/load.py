@@ -5,7 +5,7 @@ import tiktoken
 
 from my_rag_app.constants import (
     LLM_BASE_URL,
-    LLM_MODEL,
+    LLM_MODEL_V1,
     LLM_REQUEST_TIMEOUT_SECONDS,
     TOKENIZER_ENCODING,
 )
@@ -27,7 +27,7 @@ logger = get_logger(__name__)
 class LLMClient:
     """Client for generating responses from a local Ollama model."""
 
-    def __init__(self, model_name: str = LLM_MODEL, base_url: str = LLM_BASE_URL):
+    def __init__(self, model_name: str = LLM_MODEL_V1, base_url: str = LLM_BASE_URL):
         self.model_name = model_name
         self.base_url = base_url.rstrip("/")
         # Native /api/chat endpoint, NOT /v1/chat/completions — the OpenAI-compat

@@ -39,6 +39,10 @@ streamlit = "1.58.0"
 torch = {version = "^2.6.0", source = "pytorch-cu124"}
 torchvision = {version = "^0.21.0", source = "pytorch-cu124"}
 torchaudio = {version = "^2.6.0", source = "pytorch-cu124"}
+transformers = "^5.13.0"
+accelerate = "^1.14.0"
+pydantic = "^2.13.4"
+scikit-learn = "^1.9.0"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -208,6 +212,7 @@ replace = '__version__ = "{new_version}"'
 
 [tool.deptry]
 exclude = ["research","artifacts", "notebooks", "tests", "docs", ".venv", "venv", "__pycache__", ".ruff_cache", ".pytest_cache", ".mypy_cache", ".coverage", ".git", "build", "dist", ".github", "site", "config"]
+ignore = ["DEP002"]
 
 [tool.pydocstyle]
 select = ["D101", "D102"]

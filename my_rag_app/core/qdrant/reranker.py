@@ -50,7 +50,8 @@ class CrossEncoderReranker:
                 pairs,
                 batch_size=16,
                 convert_to_numpy=True,
-                show_progress_bar=False,)
+                show_progress_bar=False,
+            )
         except Exception:
             logger.exception("Reranking failed | %s")
             return results[:top_k]

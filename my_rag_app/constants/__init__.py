@@ -47,7 +47,9 @@ DENSE_EMBEDDING_MODEL = "BAAI/bge-small-en-v1.5"
 SPARSE_EMBEDDING_MODEL = "Qdrant/bm25"
 DENSE_DIM = 384
 RERANKER_MODEL = "cross-encoder/ms-marco-MiniLM-L-6-v2"
-LLM_MODEL = "qwen2.5:1.5b"
+LLM_MODEL_V1 = "qwen2.5:1.5b"
+LLM_MODEL_V2 = "Qwen/Qwen2.5-1.5B-Instruct"
+MODEL_REVISION = "989aa7980e4cf806f80c7fef2b1adb7bc71aa306"
 LLM_BASE_URL = "http://localhost:11434"
 TOKENIZER_ENCODING = "cl100k_base"
 
@@ -60,7 +62,8 @@ LLM_REQUEST_TIMEOUT_SECONDS = 120
 
 DEFAULT_TOP_K_RETRIEVE = 6
 DEFAULT_TOP_K_RERANK = 3
-CONTEXT_MAX_TOKENS = 900
+CONTEXT_MAX_TOKENS = 600
+MAX_TOKEN_GENERATION = 200
 
 
 # General-purpose regex (multi-use only — single-use cleaning patterns stay
@@ -322,7 +325,7 @@ CRITICAL PRINCIPLE
 The assistant must behave like an analyst, not a database dump engine.
 """
 
-SYSTEM_PROMPT_V3 ="""
+SYSTEM_PROMPT_V3 = """
 You are an Email Intelligence Assistant.
 
 Your task is to answer user questions using ONLY the provided email context.
@@ -391,7 +394,9 @@ NO_CONTEXT_MESSAGE = "I couldn't find relevant information in the emails to answ
 
 # Monitoring/evaluation
 GOLDEN_PATH = Path(r"C:\Users\Omen\Downloads\my-rag-app\my_rag_app\monitoring\golden.jsonl")
+GOLDEN_PATH_V1 = Path(r"C:\Users\Omen\Downloads\my-rag-app\my_rag_app\monitoring\golden_v1.jsonl")
 REPORT_PATH = Path(r"C:\Users\Omen\Downloads\my-rag-app\artifacts\evaluation\evaluation_report.json")
+REPORT_PATH_V1 = Path(r"C:\Users\Omen\Downloads\my-rag-app\artifacts\evaluation\evaluation_report_v1.json")
 DAGSHUB_TRACKING_URI = "https://dagshub.com/danishshaikh06/PRODUCTION-READY-RAG.mlflow"
 EXPERIMENT_NAME = "email-rag-evaluation_version_2"
-
+EXPERIMENT_NAME_V1 = "rag-eval_production_v1"

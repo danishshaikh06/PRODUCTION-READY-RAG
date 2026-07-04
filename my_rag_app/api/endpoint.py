@@ -9,6 +9,7 @@ from my_rag_app.pipeline.rag_pipeline import EmailAssistant
 
 logger = get_logger(__name__)
 
+
 # Schema
 class ChatMessage(BaseModel):
     """A single turn in the conversation history."""
@@ -45,6 +46,7 @@ class HealthResponse(BaseModel):
 
     status: str
 
+
 # App lifecycle
 assistant: EmailAssistant | None = None
 
@@ -66,6 +68,7 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
 
 # Endpoints
 @app.get("/health", response_model=HealthResponse)

@@ -61,6 +61,7 @@ class ValidationResult:
     reason: str = ""
 
 
+# LLM response dataclass
 @dataclass
 class LLMResponse:
     """Response returned from the LLM client, including token and latency stats."""
@@ -70,6 +71,7 @@ class LLMResponse:
     input_tokens: int
     output_tokens: int
     latency_ms: float
+
 
 # Monitoring/evaluation report dataclasses
 # Data classes
@@ -81,6 +83,18 @@ class GoldenQuery:
     expected_email_ids: list[str]
     expected_answer_contains: list[str]
     notes: str = ""
+
+
+@dataclass
+class GoldenQuery_V2:
+    """A single golden evaluation query with expected outputs."""
+
+    query: str
+    ground_truth_context: list[str]
+    ground_truth_answer: str
+    key_facts: list[str]
+    metadata: dict
+
 
 @dataclass
 class QueryResult:
@@ -94,6 +108,20 @@ class QueryResult:
     latency_ms: float
     notes: str = ""
 
+
+@dataclass
+class QueryResult_v2:
+    """Evaluation result for a single golden query."""
+
+    query: str
+    retrieved_email_ids: list[str]
+    answer: str
+    retrieval_recall: float
+    answer_quality_semantic: float
+    latency_ms: float
+    fact_f1: float
+
+
 @dataclass
 class EvaluationReport:
     """Aggregated results across all golden queries for one evaluation run."""
@@ -103,3 +131,15 @@ class EvaluationReport:
     avg_answer_quality: float = 0.0
     avg_latency_ms: float = 0.0
     query_results: list[QueryResult] = field(default_factory=list)
+
+
+@dataclass
+class EvaluationReport_v2:
+    """Aggregated results across all golden queries for one evaluation run."""
+
+    total_queries: int = 0
+    avg_retrieval_recall: float = 0.0
+    avg_answer_quality: float = 0.0
+    avg_fact_f1: float = 0.0
+    avg_latency_ms: float = 0.0
+    query_results: list[QueryResult_v2] = field(default_factory=list)

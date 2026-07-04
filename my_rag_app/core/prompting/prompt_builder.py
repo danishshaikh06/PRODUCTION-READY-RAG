@@ -14,10 +14,7 @@ class PromptBuilder:
     def get_user_prompt(self, query: str, context: str) -> str:
         """Build the user message combining the query and retrieved context."""
         if not context.strip():
-            return (
-                f"Question: {query}\n\n"
-                "No relevant emails were found in the knowledge base for this question."
-            )
+            return f"Question: {query}\n\nNo relevant emails were found in the knowledge base for this question."
         return f"Context (relevant emails):\n\n{context}\n\nQuestion: {query}"
 
     def build(
@@ -32,9 +29,7 @@ class PromptBuilder:
         the current query so the LLM has conversational context for follow-ups
         like 'show me the mail' or 'who sent that?'.
         """
-        messages: list[dict[str, str]] = [
-            {"role": "system", "content": self.get_system_prompt()}
-        ]
+        messages: list[dict[str, str]] = [{"role": "system", "content": self.get_system_prompt()}]
 
         # Include last 6 turns (3 exchanges) — enough for follow-up resolution
         # without bloating the context window on long conversations

@@ -28,7 +28,6 @@ def ask(query: str, chat_history: list[dict[str, str]]) -> tuple[str, list[dict]
     return data["answer"], data["sources"]
 
 
-
 # UI
 st.set_page_config(
     page_title="Email Intelligence Assistant",
@@ -40,10 +39,7 @@ st.title("✉️ Email Intelligence Assistant")
 st.caption("Ask questions about SMB Freight FZE aviation operations emails.")
 
 if not check_backend():
-    st.error(
-        "Backend is not running. Start it with: "
-        "`uvicorn my_rag_app.api.endpoint:app --reload`"
-    )
+    st.error("Backend is not running. Start it with: `uvicorn my_rag_app.api.endpoint:app --reload`")
     st.stop()
 
 # Session state — messages store role/content for display and history
@@ -68,10 +64,7 @@ for message in st.session_state.messages:
 if query := st.chat_input("Ask a question about your emails..."):
     # Build history as plain role/content dicts for the API
     # (exclude the 'sources' key — API only needs text)
-    api_history = [
-        {"role": m["role"], "content": m["content"]}
-        for m in st.session_state.messages
-    ]
+    api_history = [{"role": m["role"], "content": m["content"]} for m in st.session_state.messages]
 
     st.session_state.messages.append({"role": "user", "content": query})
     with st.chat_message("user"):
@@ -101,6 +94,4 @@ if query := st.chat_input("Ask a question about your emails..."):
                     if i < len(sources):
                         st.divider()
 
-    st.session_state.messages.append(
-        {"role": "assistant", "content": answer, "sources": sources}
-    )
+    st.session_state.messages.append({"role": "assistant", "content": answer, "sources": sources})

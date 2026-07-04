@@ -6,9 +6,10 @@ from my_rag_app.core.prompting.prompt_builder import PromptBuilder
 from my_rag_app.core.qdrant.reranker import CrossEncoderReranker
 from my_rag_app.core.qdrant.retriever import HybridRetriever
 from my_rag_app.logger import get_logger
-from my_rag_app.models.load import LLMClient
+from my_rag_app.models.loadv2 import QwenClient
 
 logger = get_logger(__name__)
+
 
 class EmailAssistant:
     """End-to-end query pipeline: retrieve, rerank, build context, and generate an answer."""
@@ -18,7 +19,7 @@ class EmailAssistant:
         self.retriever = HybridRetriever(qdrant_url=QDRANT_URL, collection_name=QDRANT_COLLECTION)
         self.context_builder = ContextBuilder()
         self.prompt_builder = PromptBuilder()
-        self.llm = LLMClient()
+        self.llm = QwenClient()
         self.reranker = CrossEncoderReranker()
         self.input_validator = InputValidator()
         self.citation_validator = CitationValidator()
@@ -45,16 +46,12 @@ class EmailAssistant:
         top_results = self.reranker.rerank(query, results, top_k=DEFAULT_TOP_K_RERANK)
         threads = self.retriever.expand_threads(top_results)
         context = self.context_builder.build(top_results, threads)
-        messages = self.prompt_builder.build(
-            query, context, chat_history=chat_history or []
-        )
+        messages = self.prompt_builder.build(query, context, chat_history=chat_history or [])
         response = self.llm.generate(messages)
 
         self.pii_detector.check(response.content)
 
-        citation_result = self.citation_validator.validate(
-            response.content, num_context_emails=len(top_results)
-        )
+        citation_result = self.citation_validator.validate(response.content, num_context_emails=len(top_results))
         if not citation_result.is_valid:
             return self.citation_validator.fallback_message(), []
 

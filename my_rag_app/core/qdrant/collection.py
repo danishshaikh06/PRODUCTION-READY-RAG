@@ -145,9 +145,13 @@ class QdrantIngestionPipeline:
     def _load_embedding_models(self) -> None:
         try:
             logger.info("Loading dense model: %s", DENSE_EMBEDDING_MODEL)
-            self.dense_model = TextEmbedding(model_name=DENSE_EMBEDDING_MODEL, device ="cuda" if torch.cuda.is_available() else "cpu")
+            self.dense_model = TextEmbedding(
+                model_name=DENSE_EMBEDDING_MODEL, device="cuda" if torch.cuda.is_available() else "cpu"
+            )
             logger.info("Loading sparse model: %s", SPARSE_EMBEDDING_MODEL)
-            self.sparse_model = SparseTextEmbedding(model_name=SPARSE_EMBEDDING_MODEL, device ="cuda" if torch.cuda.is_available() else "cpu")
+            self.sparse_model = SparseTextEmbedding(
+                model_name=SPARSE_EMBEDDING_MODEL, device="cuda" if torch.cuda.is_available() else "cpu"
+            )
         except Exception as e:
             logger.exception("Failed to load embedding models | error=%s")
             raise EmbeddingModelError() from e
