@@ -1,4 +1,4 @@
-'''from starlette.testclient import TestClient
+"""from starlette.testclient import TestClient
 
 from my_rag_app.main import app
 
@@ -14,4 +14,4 @@ def test_train_model():
 def test_predict():
     response = client.post("/api/v1/ask")
     assert response.status_code == 200
-    assert response.json() is not None'''
+    assert response.json() is not None"""
